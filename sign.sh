@@ -3,14 +3,14 @@
 # The path for keys could be set when exec sign.sh as: 
 #       KEY_PATH=/path/to/key sign.sh ..
 # If the path is not set, the default value is:
-#       1) if ANDROID_BUILD_TOP is set (after running lunch), it is
-#          $ANDROID_BUILD_TOP/porting/tools
+#       1) if PORT_ROOT is set (after running lunch), it is
+#          $PORT_ROOT/porting/tools
 #       2) if not running lunch, the default path is ./
-if [ -z "$ANDROID_BUILD_TOP" ]
+if [ -z "$PORT_ROOT" ]
 then
     KEYPATH=${KEY_PATH:=.}
 else
-    KEYPATH=${KEY_PATH:=$ANDROID_BUILD_TOP/porting/tools}
+    KEYPATH=${KEY_PATH:=$PORT_ROOT/tools}
 fi
 
 SIGNAPK=$KEYPATH/signapk.jar
