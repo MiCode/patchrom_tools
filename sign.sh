@@ -39,7 +39,7 @@ function sign_for_phone() {
 
 function sign_for_dir() {
     echo ">>> Sign apks under dir $1..."
-    for apk in `find $1 -name *.apk`
+    for apk in `find $1 -name "*.apk"`
     do
         echo ">>> Sign for $apk"
         delete_meta_info $apk
