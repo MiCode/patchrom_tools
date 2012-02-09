@@ -5,12 +5,11 @@ echo "The released source code would be put at: $3"
 
 echo "[IMPORTANT] make sure the source codes has been put under $1"
 
-mv $1 $1.bak
 src_dir=frameworks/base
-android=$1.bak/$src_dir
-android_rlz=$1/$src_dir
+android=$1/$src_dir
+android_rlz=$PORT_ROOT/android/src/$src_dir
 miui=$2/$src_dir
-release=$3/$src_dir
+release=$3/src/$src_dir
 
 for mf in `find $miui -name "*.java"`
 do
@@ -28,9 +27,5 @@ do
             }
        else
             echo "Have $mf but $af does not exist!"
-            exit
        fi
 done
-echo "[IMPORTANT] The orignal android dir $1"
-echo "[IMPORTANT] is left as $1.bak."
-echo "[IMPORTANT] Please remove it before offical release!"
