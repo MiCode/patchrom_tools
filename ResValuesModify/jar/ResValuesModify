@@ -1,0 +1,11 @@
+#!/bin/bash
+if [ $# -ne 2 ]
+then
+   echo "ERROR: just accept two input parameters"
+   echo "	\$1 is the miui values dir"
+   echo "	\$2 is the third-party values dir"
+else
+   java -jar ResValuesModify.jar $1 $2
+fi
+
+
