@@ -8,14 +8,17 @@ reject_dir=$temp_dir/reject
 
 RMLINE=$PORT_ROOT/tools/rmline.sh
 function remove_lines() {
+	echo "==>Remove .line from $1/framework.jar.out"
 	$RMLINE $1/framework.jar.out
+	echo "==>Remove .line from $1/services.jar.out"
 	$RMLINE $1/services.jar.out
+	echo "==>Remove .line form $1/android.policy.jar.out"
 	$RMLINE $1/android.policy.jar.out
 }
 
 if [ ! -d $temp_dir ]
 then
-	echo "Create temp directory to store the last, current and target framework smali code with .line removed."
+	echo "==>Create temp directory to store the last, current framework smali code with .line removed."
     mkdir -p $temp_dir
 	mkdir -p $temp_dir/current-framework
 	mkdir -p $temp_dir/target-framework
@@ -29,13 +32,13 @@ then
 fi
 
 function apply_miui_patch() {
-	echo "Compute the diff between google and patch-miui-to-google smali code..."
 	old_src=$temp_dir/last-framework/$1
 	new_src=$temp_dir/current-framework/$1
 	dst_src=$target_framework_dir/$1
 	dst_src_orig=$dst_src.orig
 	dst_src_noline=$dst_src.noline
 
+	echo "==>Compute the difference between $old_src and $new_src"
 	cd $old_src
 	for file in `find ./ -name "*.smali"`
 	do
@@ -51,10 +54,10 @@ function apply_miui_patch() {
 
 	cd $dst_src/..
 	cp -r $dst_src $dst_src_orig
-	echo "Remove .line from target smali code..."
+	echo "==>Remove .line from $dst_src"
 	$RMLINE $dst_src
 
-	echo "Apply the patch into the target smali code..."
+	echo "==>Apply the patch into the $dst_src"
 	cp -r $dst_src $dst_src_noline
 	cd $old_src
 	for file in `find ./ -name "*.smali.diff"`
@@ -63,7 +66,7 @@ function apply_miui_patch() {
         patch $dst_src/${file%.diff} -r $reject_dir/$1/${file%.diff}.rej < $file
 	done
 
-	echo "Add .line back to the phone smali code..."
+	echo "==>Add .line back to the $dst_src"
 	cd $dst_src_noline
 	for file in `find ./ -name "*.smali"`
 	do
@@ -72,6 +75,8 @@ function apply_miui_patch() {
         patch -f $dst_src/$file -r /dev/null < $file.diff >/dev/null 2>&1
 		rm -f $file.diff
 	done
+
+    find $dst_src -name "*.smali.orig" -exec rm {} \;
 	rm -rf $dst_src_orig
 	mv $dst_src_noline $temp_dir/target-framework/$1
 }
@@ -80,4 +85,6 @@ apply_miui_patch android.policy.jar.out
 apply_miui_patch services.jar.out
 apply_miui_patch framework.jar.out
 
-echo "Patch miui into target framework is done. Please look at $reject_dir to resolve any conflicts."
+echo
+echo
+echo "==>Patch miui into target framework is done. Please look at $reject_dir to resolve any conflicts!"
