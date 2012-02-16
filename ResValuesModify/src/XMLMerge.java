@@ -23,6 +23,14 @@ public class XMLMerge {
     private ArrayList<File> mSrcFiles;
     private ArrayList<File> mDestFiles;
 
+    public static final int MERGE_MATCH_ALL = 0;
+    public static final int MERGE_DONT_NEED_MERGE = 1;
+    public static final int MERGE_DONT_FIND_DEST_FILE = 2;
+    public static final int MERGE_EXCEPTION = 3;
+    public static final int MERGE_ADD_ELEMENT = 4;
+    public static final int MERGE_MODIFY_ELEMENT = 5;
+    public static final int MERGE_FAILED = 6;
+    
     public XMLMerge(ArrayList<File> srcFiles, ArrayList<File> destFiles) {
         mSrcFiles = srcFiles;
         mDestFiles = destFiles;
@@ -45,13 +53,13 @@ public class XMLMerge {
                 return;
             }
 
-            System.out.println("***************START MERGE***********");
-            System.out.println("SRC XML FILE: " + file.getName());
+            //System.out.println("***************START MERGE***********");
+            //System.out.println("SRC XML FILE: " + file.getName());
 
-            traverseMergeXML(root);
-            System.out.println("---------------END   MERGE-----------");
-            System.out.println();
-            System.out.println();
+            traverseMergeXML(root, file);
+            //System.out.println("---------------END   MERGE-----------");
+            //System.out.println();
+            //System.out.println();
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -106,29 +114,29 @@ public class XMLMerge {
         return doc.getDocumentElement();
     }
 
-    private void mergeNode(Node node) {
+    private int mergeNode(Node node) {
         String xpathStr = getXpathStr(node);
         String textContent = node.getTextContent();
-        System.out.println();
-        System.out.println(xpathStr + ":" + node.getTextContent());
+        //System.out.println();
+        //System.out.println(xpathStr + ":" + node.getTextContent());
 
         if (xpathStr.contains("/resources/add-resource")) {
-            System.out.println("DONT NEED TO ADD ELEMENT: add-resource");
-            return;
+            //System.out.println("DONT NEED TO ADD ELEMENT: add-resource");
+            return MERGE_DONT_NEED_MERGE;
         }
 
         File destFile = getDestFile(xpathStr);
         if (null == destFile) {
-            System.out.println("DEST FILE: DONT FOUND");
-            return;
+            //System.out.println("DEST FILE: DONT FOUND");
+            return MERGE_DONT_FIND_DEST_FILE;
         }
 
-        System.out.println("DEST FILE --> " + destFile.getName());
+        //System.out.println("DEST FILE --> " + destFile.getName());
 
-        mergeNodeToDestFile(xpathStr, textContent, destFile);
+        return mergeNodeToDestFile(xpathStr, textContent, destFile);
     }
 
-    private void mergeNodeToDestFile(String xpathStr, String textContent, File destFile) {
+    private int mergeNodeToDestFile(String xpathStr, String textContent, File destFile) {
         String tryMatchStr = new String(xpathStr);
         try {
             DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
@@ -152,30 +160,30 @@ public class XMLMerge {
                         String subStr = tryMatchStr.substring(tryMatchStr.lastIndexOf('/') + 1);
                         if (true == subStr.contains("[@")) {    //if the element contain Attribute, just need to modify the element's textcontent
                             if(nList.item(0).getTextContent().equals(textContent)){
-                                System.out.println(getLineNumberString(new Exception()) + "ALL MATCH");
-                                return;
+                                //System.out.println(getLineNumberString(new Exception()) + "ALL MATCH");
+                                return MERGE_MATCH_ALL;
                             }else{
-                                System.out.println(getLineNumberString(new Exception()) + "MODIFY TEXTCONTENT: "
-                                        + nList.item(0).getTextContent() + " -> " + textContent);
+                                //System.out.println(getLineNumberString(new Exception()) + "MODIFY TEXTCONTENT: "
+                                //        + nList.item(0).getTextContent() + " -> " + textContent);
                                 nList.item(0).setTextContent(textContent);
                                 writeXML(doc, destFile);
-                                return;
+                                return MERGE_MODIFY_ELEMENT;
                             }
                         } else {    //element don't contain attriute, check if or not exist element with same textcontent  
                             Node papa = nList.item(0).getParentNode();
                             String nodeName = nList.item(0).getNodeName();
                             for (int i = 0; i < nList.getLength(); i++) {
                                 if (nList.item(i).getTextContent().equals(textContent)) {
-                                    System.out.println(getLineNumberString(new Exception()) + "ALL MATCH");
-                                    return;
+                                    //System.out.println(getLineNumberString(new Exception()) + "ALL MATCH");
+                                    return MERGE_MATCH_ALL;
                                 }
                             }
                             Element e = doc.createElement(nodeName);
                             papa.appendChild(e);
                             e.setTextContent(textContent);
                             writeXML(doc, destFile);
-                            System.out.println(getLineNumberString(new Exception()) + "ADD ELEMENT: " + getXpathStr(e) + ":" + textContent);
-                            return;
+                            //System.out.println(getLineNumberString(new Exception()) + "ADD ELEMENT: " + getXpathStr(e) + ":" + textContent);
+                            return MERGE_ADD_ELEMENT;
                         }
                     } else {
                         lostMatchStr = lostMatchStr.replace(tryMatchStr, "");
@@ -186,8 +194,7 @@ public class XMLMerge {
 
                     //match a part of absXpathStr 
                     if (true == lostMatchStr.startsWith("/")) {     
-                        addNode(doc, (Element) (nList.item(0)), destFile, lostMatchStr, textContent);
-                        return;
+                        return addNode(doc, (Element) (nList.item(0)), destFile, lostMatchStr, textContent);
                     } else if (true == lostMatchStr.startsWith("[@")){
                         String attrName = lostMatchStr.substring(lostMatchStr.indexOf('@') + 1, lostMatchStr.indexOf('='));
                         lostMatchStr = lostMatchStr.replaceFirst("\'", "");
@@ -199,14 +206,13 @@ public class XMLMerge {
                         if (lostMatchStr.indexOf('/') < 0) {
                             e.appendChild(doc.createTextNode(textContent));
                             writeXML(doc, destFile);
-                            System.out.println(getLineNumberString(new Exception()) + "ADD ELEMENT: " + getXpathStr(e) + ":" + textContent);
-                            return;
+                            //System.out.println(getLineNumberString(new Exception()) + "ADD ELEMENT: " + getXpathStr(e) + ":" + textContent);
+                            return MERGE_ADD_ELEMENT;
                         } else {
-                            addNode(doc, e, destFile, lostMatchStr.substring(lostMatchStr.indexOf('/')), textContent);
-                            return;
+                            return addNode(doc, e, destFile, lostMatchStr.substring(lostMatchStr.indexOf('/')), textContent);
                         }
                     }else{
-                        System.out.println(getLineNumberString(new Exception()) + "INVAILD ELEMENT");
+                        //System.out.println(getLineNumberString(new Exception()) + "INVAILD ELEMENT");
                     }
                 }
                 tryMatchStr = getUpperXpathStr(tryMatchStr);
@@ -215,11 +221,12 @@ public class XMLMerge {
             }
         } catch (Exception e) {
             e.printStackTrace();
-            return;
+            return MERGE_EXCEPTION;
         }
+        return MERGE_FAILED;
     }
 
-    private void addNode(Document doc, Element element, File destFile, String xpathStr, String textContent) {
+    private int addNode(Document doc, Element element, File destFile, String xpathStr, String textContent) {
         String tmp = new String(xpathStr);
         while (tmp.indexOf('/') > -1) {     //do until there is no element
             tmp = tmp.replaceFirst("/", "");
@@ -259,10 +266,11 @@ public class XMLMerge {
                 }
                 element.appendChild(doc.createTextNode(textContent));
                 writeXML(doc, destFile);
-                System.out.println(getLineNumberString(new Exception()) + "ADD ELEMENT: " + getXpathStr(element) + ":" + textContent);
-                return;
+                //System.out.println(getLineNumberString(new Exception()) + "ADD ELEMENT: " + getXpathStr(element) + ":" + textContent);
+                return MERGE_ADD_ELEMENT;
             }
         }
+        return MERGE_FAILED;
     }
 
     private File getDestFile(String xpathStr) {
@@ -324,9 +332,26 @@ public class XMLMerge {
         return false;
     }
 
-    public void traverseMergeXML(Node node) {
+    public void traverseMergeXML(Node node, File file) {
         if (true == isElementLeaf(node)) {
-            mergeNode(node);
+            switch(mergeNode(node)){
+            case MERGE_ADD_ELEMENT:
+            case MERGE_MODIFY_ELEMENT:
+            case MERGE_DONT_NEED_MERGE:
+                break;
+                
+            case MERGE_DONT_FIND_DEST_FILE:
+                System.out.println("  " + "{" + file.getName() + "}" + " DONT FIND DEST FILE: " + getXpathStr(node));
+                break;
+                
+            case MERGE_FAILED:                
+            case MERGE_EXCEPTION:
+                System.out.println("  " + "{" + file.getName() + "}" + " MERGE FAILED: " + getXpathStr(node));
+                break;
+                
+            default:
+                break;
+            }
         }
         // Now traverse the rest of the tree in depth-first order.
         if (node.hasChildNodes()) {
@@ -334,7 +359,7 @@ public class XMLMerge {
             int size = nList.getLength();
             for (int i = 0; i < size; i++) {
                 // Recursively traverse each of the children.
-                traverseMergeXML(nList.item(i));
+                traverseMergeXML(nList.item(i), file);
             }
         }
     }
@@ -388,13 +413,24 @@ public class XMLMerge {
             node = node.getParentNode();
         }
         xpathStr = "/" + xpathStr;
-        // System.out.println("pre: " + xpathStr);
+        //System.out.println("pre: " + xpathStr);
 
         ArrayList<String> subStrArray = new ArrayList<String>();
         subStrArray.add("//#document");
         subStrArray.add("android:");
         xpathStr = delSubString(xpathStr, subStrArray);
-        // System.out.println("post:" + xpathStr);
+        
+        String[] split = xpathStr.split("/");
+        
+        if(split.length < 2){
+            return null;
+        }
+        
+        if(true == split[1].contains("[@")){
+            xpathStr = xpathStr.replace(split[1].substring(split[1].indexOf('[')), "");
+        }
+        
+        //System.out.println("post:" + xpathStr);
         return xpathStr;
     }
 

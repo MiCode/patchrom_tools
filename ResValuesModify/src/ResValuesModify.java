@@ -53,19 +53,19 @@ public class ResValuesModify {
             usage();
             return false;
         }
-        System.out.println("------------------------------------------------");
-        System.out.println("***Src files: ***");
+        /*
+        System.out.println("###################################################");
+        System.out.println("*** Source Files: ***********");
         for (int i = 0; i < mSrcFileArray.size(); i++) {
-            System.out.println(mSrcFileArray.get(i).getName());
+            System.out.println("\t" + mSrcFileArray.get(i).getName());
         }
-        System.out.println();
-        System.out.println("------------------");
-        System.out.println("***Dest files: ***");
-        for (int i = 0; i < mDestFileArray.size(); i++) {
-            System.out.println(mDestFileArray.get(i).getName());
-        }
-        System.out.println();
         System.out.println("------------------------------------------------");
+        System.out.println("*** Destination Files: ******");
+        for (int i = 0; i < mDestFileArray.size(); i++) {
+            System.out.println("\t" + mDestFileArray.get(i).getName());
+        }
+        System.out.println("###################################################");
+        */
 
         return true;
     }
