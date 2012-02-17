@@ -19,6 +19,9 @@ import org.w3c.dom.NodeList;
 import com.sun.org.apache.xml.internal.serialize.OutputFormat;
 import com.sun.org.apache.xml.internal.serialize.XMLSerializer;
 
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
+
 public class XMLMerge {
     private ArrayList<File> mSrcFiles;
     private ArrayList<File> mDestFiles;
@@ -419,17 +422,11 @@ public class XMLMerge {
         subStrArray.add("//#document");
         subStrArray.add("android:");
         xpathStr = delSubString(xpathStr, subStrArray);
-        
-        String[] split = xpathStr.split("/");
-        
-        if(split.length < 2){
-            return null;
-        }
-        
-        if(true == split[1].contains("[@")){
-            xpathStr = xpathStr.replace(split[1].substring(split[1].indexOf('[')), "");
-        }
-        
+
+        Pattern p = Pattern.compile("\\[@xmlns:\\S+\\]/");
+        Matcher m = p.matcher(xpathStr);
+        xpathStr = m.replaceAll("/");
+
         //System.out.println("post:" + xpathStr);
         return xpathStr;
     }
