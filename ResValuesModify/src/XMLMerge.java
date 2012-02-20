@@ -423,10 +423,6 @@ public class XMLMerge {
         subStrArray.add("android:");
         xpathStr = delSubString(xpathStr, subStrArray);
 
-        Pattern p = Pattern.compile("\\[@xmlns:\\S+\\]/");
-        Matcher m = p.matcher(xpathStr);
-        xpathStr = m.replaceAll("/");
-
         //System.out.println("post:" + xpathStr);
         return xpathStr;
     }
