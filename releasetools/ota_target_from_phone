@@ -1,0 +1,102 @@
+#!/bin/bash 
+
+TARGET_TOOL_PATH=$PORT_ROOT/tools/releasetools
+OTA_FROM_TARGET_FILES=$PORT_ROOT/tools/releasetools/ota_from_target_files
+
+TARGET_FILES_TEMPLATE_PATH=$PORT_ROOT/tools/target_files_template
+
+TARGET_FILES_PATH=`pwd`/out/target_files
+RECOVERY_PATH=$TARGET_FILES_PATH/RECOVERY/RAMDISK/etc
+SYSTEM_PATH=$TARGET_FILES_PATH/system
+META_PATH=$TARGET_FILES_PATH/META
+ZIP_NAME=target_files.zip
+OTA_PACKAGE_PATH=`pwd`/out
+OTA_PACKAGE_NAME=update.zip
+
+mkdir -p $TARGET_FILES_PATH
+cp -r $TARGET_FILES_TEMPLATE_PATH/*  $TARGET_FILES_PATH
+
+adb reboot recovery
+echo "please wait for reboot the phone....."
+sleep 30
+
+while [ 0 ]
+do 
+    adb shell pwd
+    if [ $? -eq 0 ]
+    then
+        break
+    else
+        sleep 5
+    fi
+done
+
+#######################################################################
+info=`adb shell cat /etc/recovery.fstab | grep boot | sed -e "s/\s\+/:/g"`
+ 
+type=`echo $info | cut -d":" -f2`
+ 
+if [ "$type" == "mtd" ]; then
+        mtdn=`adb shell cat /proc/mtd | grep boot | cut -f1 -d":"`
+        where=/dev/$type/$mtdn
+elif [ "$type" == "emmc" ]; then
+        where=`echo $info | cut -d":" -f3`
+else
+    exit 1
+fi
+
+adb shell mount /system
+
+echo "Get bootimage from $where"
+
+adb push $TARGET_TOOL_PATH/getbootimage /sbin
+adb shell . getbootimage "$where"
+adb pull /boot.img $TARGET_FILES_PATH/BOOTABLE_IMAGES/
+#######################################################################
+
+rm $RECOVERY_PATH/recovery.fstab
+adb shell cat /etc/recovery.fstab > $RECOVERY_PATH/recovery.fstab
+
+sleep 1
+
+adb push $TARGET_TOOL_PATH/getfilesysteminfo /system/xbin
+
+rm -rf $SYSTEM_PATH
+rm -rf $TARGET_FILES_PATH/SYSTEM
+mkdir $SYSTEM_PATH
+
+rm $META_PATH/filesystem_config.txt
+adb shell /system/xbin/getfilesysteminfo --info /system > $META_PATH/tmp.txt
+more $META_PATH/tmp.txt | sed 's/\r//g' | sort > $META_PATH/filesystem_config.txt
+rm $META_PATH/tmp.txt
+
+adb shell /system/xbin/getfilesysteminfo --link /system > $SYSTEM_PATH/tmp.txt
+more $SYSTEM_PATH/tmp.txt | sort > $SYSTEM_PATH/linkinfo.txt
+rm $SYSTEM_PATH/tmp.txt
+
+adb pull /system $SYSTEM_PATH
+
+echo "mv $SYSTEM_PATH $TARGET_FILES_PATH/SYSTEM"
+mkdir $TARGET_FILES_PATH/SYSTEM
+mv $SYSTEM_PATH/* $TARGET_FILES_PATH/SYSTEM
+rm -rf $SYSTEM_PATH
+
+python $TARGET_TOOL_PATH/recoverylink.py "$TARGET_FILES_PATH"
+if [ $? -ne 0 ]; then
+    echo "Error: recovery link files failed"
+    exit 1
+fi
+rm $TARGET_FILES_PATH/SYSTEM/linkinfo.txt
+
+adb reboot
+
+cd "$TARGET_FILES_PATH"
+rm -rf $OTA_PACKAGE_PATH/$ZIP_NAME
+zip -r -y $OTA_PACKAGE_PATH/$ZIP_NAME ./*
+cd -
+
+echo "python $OTA_FROM_TARGET_FILES $OTA_PACKAGE_PATH/$ZIP_NAME $OTA_PACKAGE_PATH/$OTA_PACKAGE_NAME"
+python $OTA_FROM_TARGET_FILES $OTA_PACKAGE_PATH/$ZIP_NAME $OTA_PACKAGE_PATH/$OTA_PACKAGE_NAME
+
+#rm -rf $OTA_PACKAGE_PATH/$ZIP_NAME
+
