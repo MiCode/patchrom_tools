@@ -159,7 +159,7 @@ def LoadRecoveryFSTab(zip):
     line = line.strip()
     if not line or line.startswith("#"): continue
     pieces = line.split()
-    if not (3 <= len(pieces) <= 4):
+    if not (3 <= len(pieces)):
       raise ValueError("malformed recovery.fstab line: \"%s\"" % (line,))
 
     p = Partition()
@@ -263,8 +263,9 @@ def GetBootableImage(name, prebuilt_name, unpack_dir, tree_subdir):
     print "using prebuilt %s..." % (prebuilt_name,)
     return File.FromLocalFile(name, prebuilt_path)
   else:
-    print "building image from target_files %s..." % (tree_subdir,)
-    return File(name, BuildBootableImage(os.path.join(unpack_dir, tree_subdir)))
+    return None
+    #print "building image from target_files %s..." % (tree_subdir,)
+    #return File(name, BuildBootableImage(os.path.join(unpack_dir, tree_subdir)))
 
 
 def UnzipTemp(filename, pattern=None):
@@ -682,6 +683,9 @@ class DeviceSpecificParams(object):
     processor."""
     return self._DoCall("IncrementalOTA_InstallEnd")
 
+  def WriteRawImage(self, *args):
+    return self._DoCall("WriteRawImage")
+
 class File(object):
   def __init__(self, name, data):
     self.name = name
@@ -813,7 +817,7 @@ def ComputeDifferences(diffs):
 
 # map recovery.fstab's fs_types to mount/format "partition types"
 PARTITION_TYPES = { "yaffs2": "MTD", "mtd": "MTD",
-                    "ext4": "EMMC", "emmc": "EMMC" }
+                    "ext4": "EMMC", "emmc": "EMMC", "vfat": "EMMC"}
 
 def GetTypeAndDevice(mount_point, info):
   fstab = info["fstab"]

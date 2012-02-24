@@ -1,6 +1,0 @@
-#!/bin/bash 
-
-where=$1
-cat $where > /boot.img
-echo "bootimage from $where is ready"
-

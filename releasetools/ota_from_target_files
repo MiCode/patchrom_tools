@@ -77,7 +77,7 @@ import common
 import edify_generator
 
 OPTIONS = common.OPTIONS
-OPTIONS.package_key = os.path.join(OPTIONS.search_path, "platform")
+OPTIONS.package_key = None
 OPTIONS.incremental_source = None
 OPTIONS.require_verbatim = set()
 OPTIONS.prohibit_verbatim = set(("system/build.prop",))
@@ -113,10 +113,12 @@ class Item:
   ITEMS = {}
   def __init__(self, name, dir=False):
     self.name = name
-    self.uid = None
-    self.gid = None
-    self.mode = None
+    self.uid = 0
+    self.gid = 0
+    self.mode = 0644
     self.dir = dir
+    if dir:
+      self.mode = 0755
 
     if name:
       self.parent = Item.Get(os.path.dirname(name), dir=True)
@@ -388,15 +390,14 @@ def WriteFullOTAPackage(input_zip, output_zip):
   if OPTIONS.wipe_user_data:
     script.FormatPartition("/data")
 
+  script.Unmount("/system")
   script.FormatPartition("/system")
   script.Mount("/system")
-  script.UnpackPackageDir("recovery", "/system")
+  #script.UnpackPackageDir("recovery", "/system")
   script.UnpackPackageDir("system", "/system")
 
   (symlinks, retouch_files) = CopySystemFiles(input_zip, output_zip)
   script.MakeSymlinks(symlinks)
-
-  # Don't support aslr_mode now
   # if OPTIONS.aslr_mode:
   #   script.RetouchBinaries(retouch_files)
   # else:
@@ -404,7 +405,6 @@ def WriteFullOTAPackage(input_zip, output_zip):
 
   boot_img = common.GetBootableImage("boot.img", "boot.img",
                                      OPTIONS.input_tmp, "BOOT")
-  # We really don't want to update recovery
   # recovery_img = common.GetBootableImage("recovery.img", "recovery.img",
   #                                        OPTIONS.input_tmp, "RECOVERY")
   # MakeRecoveryPatch(output_zip, recovery_img, boot_img)
@@ -412,12 +412,14 @@ def WriteFullOTAPackage(input_zip, output_zip):
   Item.GetMetadata(input_zip)
   Item.Get("system").SetPermissions(script)
 
-  common.CheckSize(boot_img.data, "boot.img", OPTIONS.info_dict)
-  common.ZipWriteStr(output_zip, "boot.img", boot_img.data)
+  if boot_img:
+    common.CheckSize(boot_img.data, "boot.img", OPTIONS.info_dict)
+    common.ZipWriteStr(output_zip, "boot.img", boot_img.data)
   script.ShowProgress(0.2, 0)
 
   script.ShowProgress(0.2, 10)
-  script.WriteRawImage("/boot", "boot.img")
+  if boot_img and not device_specific.WriteRawImage("/boot", "boot.img"):
+    script.WriteRawImage("/boot", "boot.img")
 
   script.ShowProgress(0.1, 0)
   device_specific.FullOTA_InstallEnd()
@@ -543,7 +545,7 @@ def WriteIncrementalOTAPackage(target_zip, source_zip, output_zip):
       "/tmp/boot.img", "boot.img", OPTIONS.source_tmp, "BOOT")
   target_boot = common.GetBootableImage(
       "/tmp/boot.img", "boot.img", OPTIONS.target_tmp, "BOOT")
-  updating_boot = (source_boot.data != target_boot.data)
+  updating_boot = (source_boot != None and target_boot != None and source_boot.data != target_boot.data)
 
   source_recovery = common.GetBootableImage(
       "/tmp/recovery.img", "recovery.img", OPTIONS.source_tmp, "RECOVERY")
@@ -804,7 +806,7 @@ def main(argv):
     if OPTIONS.package_key is None:
       OPTIONS.package_key = OPTIONS.info_dict.get(
           "default_system_dev_certificate",
-          os.path.join(OPTIONS.search_path, "platform"));
+          "build/target/product/security/testkey")
   else:
     print "unzipping source target-files..."
     OPTIONS.source_tmp, source_zip = common.UnzipTemp(OPTIONS.incremental_source)
@@ -813,7 +815,7 @@ def main(argv):
     if OPTIONS.package_key is None:
       OPTIONS.package_key = OPTIONS.source_info_dict.get(
           "default_system_dev_certificate",
-          os.path.join(OPTIONS.search_path, "platform"));
+          "build/target/product/security/testkey")
     if OPTIONS.verbose:
       print "--- source info ---"
       common.DumpInfoDict(OPTIONS.source_info_dict)
