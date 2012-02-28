@@ -4,12 +4,13 @@ This script is very specific for framework-res/res/values/drawables.xml.
 Currently ResValuesModify can't process <item name="screen_background_light" type="drawable" />.
 use this script to remove multiple definitions
 """
-
+import sys
 import xml
 import xml.dom
 from xml.dom import minidom
 
-filename="framework-res/res/values/drawables.xml"
+fdir=sys.argv[1]
+filename=fdir +"/res/values/drawables.xml"
 xmldoc = minidom.parse(filename)
 root = xmldoc.firstChild
 elements = [ e for e in root.childNodes if e.nodeType == e.ELEMENT_NODE ]

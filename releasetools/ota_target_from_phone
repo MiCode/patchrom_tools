@@ -4,7 +4,7 @@ PWD=`pwd`
 TOOL_DIR=$PORT_ROOT/tools
 OTA_FROM_TARGET_FILES=$TOOL_DIR/releasetools/ota_from_target_files
 TARGET_FILES_TEMPLATE_DIR=$PORT_ROOT/tools/target_files_template
-OUTPUT_DIR=$PWD/out
+OUTPUT_DIR=$PWD
 TARGET_FILES_DIR=$OUTPUT_DIR/target_files
 RECOVERY_ETC_DIR=$TARGET_FILES_DIR/RECOVERY/RAMDISK/etc
 SYSTEM_DIR=$TARGET_FILES_DIR/SYSTEM
@@ -230,8 +230,6 @@ function build_ota_package {
 
 # try to generate the full ota package and target files in recovery mode
 function try_recovery_mode {
-    echo "Reboot into recovery mode to generate target files..."
-    adb reboot recovery
     wait_for_device_online
     if [ $TIMEOUT -eq 0 ]
     then
@@ -242,8 +240,6 @@ function try_recovery_mode {
     adb shell mount /system
     sleep 5
     build_SYSTEM
-    zip_target_files
-    build_ota_package
     adb shell umount /system
     exit 0
 }
@@ -259,8 +255,6 @@ function try_normal_mode {
     extract_bootimage
     build_recovery_fstab
     build_SYSTEM
-    zip_target_files
-    build_ota_package
     exit 0
 }
 
