@@ -157,6 +157,7 @@ function build_apkcerts {
     echo "Build apkcerts.txt"
     adb pull /data/system/packages.xml $TARGET_FILES_DIR
     python $TOOL_DIR/apkcerts.py $TARGET_FILES_DIR/packages.xml $META_DIR/apkcerts.txt
+    rm $TARGET_FILES_DIR/packages.xml
 }
 
 # build filesystem_config.txt from device
@@ -226,6 +227,7 @@ function zip_target_files {
     echo "Compress the target_files dir into zip file"
     cd $TARGET_FILES_DIR
     zip -q -r -y $TARGET_FILES_ZIP *
+    cd -
 }
 
 # build a new full ota package
@@ -242,7 +244,7 @@ function gen_metadata {
 
     cp -f $META_DIR/apkcerts.txt $out
     cp -f $META_DIR/filesystem_config.txt $out
-    cp -f $SYSTEM_DIR/linkinfo.txt $out
+    mv -f $SYSTEM_DIR/linkinfo.txt $out
     cp -f $RECOVERY_ETC_DIR/recovery.fstab $out
 }
 
