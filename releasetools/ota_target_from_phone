@@ -255,9 +255,6 @@ function gen_metadata {
     cp -f $RECOVERY_ETC_DIR/recovery.fstab $out
 }
 
-build_apkcerts
-exit 0
-
 if [ $# -eq 0 ] || [ $# -gt 2 ];then
     prompt_user
     exit 1
