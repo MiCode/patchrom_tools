@@ -157,6 +157,13 @@ function build_apkcerts {
     echo "Build apkcerts.txt"
     adb pull /data/system/packages.xml $TARGET_FILES_DIR
     python $TOOL_DIR/apkcerts.py $TARGET_FILES_DIR/packages.xml $META_DIR/apkcerts.txt
+    for file in `ls $SYSTEM_DIR/framework/*.apk`
+    do
+        apk=`basename $file`
+        echo "name=\"$apk\" certificate=\"build/target/product/security/platform.x509.pem\" private_key=\"build/target/product/security/platform.pk8\"" >> $META_DIR/apkcerts.txt
+    done
+    cat $META_DIR/apkcerts.txt | sort > $META_DIR/temp.txt
+    mv $META_DIR/temp.txt $META_DIR/apkcerts.txt
     rm $TARGET_FILES_DIR/packages.xml
 }
 
@@ -248,6 +255,9 @@ function gen_metadata {
     cp -f $RECOVERY_ETC_DIR/recovery.fstab $out
 }
 
+build_apkcerts
+exit 0
+
 if [ $# -eq 0 ] || [ $# -gt 2 ];then
     prompt_user
     exit 1
@@ -272,11 +282,11 @@ else
     build_recovery_fstab
 fi
 
-build_apkcerts
 build_SYSTEM
+build_apkcerts
+gen_metadata
 zip_target_files
 build_ota_package
-gen_metadata
 
 if [ "$MODE" == "-r" ];then
     adb shell umount /system

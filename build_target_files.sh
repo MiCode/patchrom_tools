@@ -6,6 +6,7 @@ TARGET_FILES_DIR=$OUT_DIR/target_files
 TARGET_FILES_ZIP=$OUT_DIR/target_files.zip
 TARGET_FILES_TEMPLATE_DIR=$PORT_ROOT/tools/target_files_template
 TOOL_DIR=$PORT_ROOT/tools
+OTA_FROM_TARGET_FILES=$TOOL_DIR/releasetools/ota_from_target_files
 
 # copy the whole target_files_template dir
 function copy_target_files_template {
@@ -43,6 +44,8 @@ function process_metadata {
     cp -f $METADATA_DIR/filesystem_config.txt $TARGET_FILES_DIR/META
     cp -f $METADATA_DIR/recovery.fstab $TARGET_FILES_DIR/RECOVERY/RAMDISK/etc
     python $TOOL_DIR/uniq_first.py $METADATA_DIR/apkcerts.txt $TARGET_FILES_DIR/META/apkcerts.txt
+    cat $TARGET_FILES_DIR/META/apkcerts.txt | sort > $TARGET_FILES_DIR/temp.txt
+    mv $TARGET_FILES_DIR/temp.txt $TARGET_FILES_DIR/META/apkcerts.txt
     recover_link
 }
 
@@ -53,6 +56,13 @@ function zip_target_files {
     cd $TARGET_FILES_DIR
     echo "zip -q -r -y $TARGET_FILES_ZIP *"
     zip -q -r -y $TARGET_FILES_ZIP *
+    cd -
+}
+
+# build a new full ota package
+function build_ota_package {
+    echo "Build full ota package: $OUTPUT_OTA_PACKAGE"
+    $OTA_FROM_TARGET_FILES -n -k $TOOL_DIR/platform $TARGET_FILES_ZIP $OUT_DIR/update_miui.zip
 }
 
 copy_target_files_template
@@ -60,3 +70,4 @@ copy_bootimage
 copy_system_dir
 process_metadata
 zip_target_files
+build_ota_package
