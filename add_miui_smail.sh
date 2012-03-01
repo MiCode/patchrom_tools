@@ -13,3 +13,7 @@ do
                 cp $file $newfile
         fi
 done
+
+if [ -f "customize_framework.sh" ]; then
+	./customize_framework.sh $1 $2
+fi

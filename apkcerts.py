@@ -52,7 +52,8 @@ def main():
         else:
                 uid = string.atoi(pkg.attributes["sharedUserId"].value)
         name = getName(pkg.attributes["codePath"].value)
-        fileContent +=  insertToDestText(fileContent, uid, name, shareUserId)
+        if name:
+            fileContent +=  insertToDestText(fileContent, uid, name, shareUserId)
 
     open(sys.argv[2], "w").write(fileContent)
 if "__main__" == __name__:
