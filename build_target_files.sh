@@ -7,6 +7,7 @@ TARGET_FILES_ZIP=$OUT_DIR/target_files.zip
 TARGET_FILES_TEMPLATE_DIR=$PORT_ROOT/tools/target_files_template
 TOOL_DIR=$PORT_ROOT/tools
 OTA_FROM_TARGET_FILES=$TOOL_DIR/releasetools/ota_from_target_files
+SIGN_TARGET_FILES_APKS=$TOOL_DIR/releasetools/sign_target_file_apks
 
 # copy the whole target_files_template dir
 function copy_target_files_template {
@@ -59,10 +60,20 @@ function zip_target_files {
     cd -
 }
 
+function sign_target_files {
+    echo "Sign target files"
+    $SIGN_TARGET_FILES_APKS -d $PORT_ROOT/build/security $TARGET_FILES_ZIP temp.zip
+    mv temp.zip $TARGET_FILES_ZIP
+}
+
 # build a new full ota package
 function build_ota_package {
     echo "Build full ota package: $OUTPUT_OTA_PACKAGE"
+    if [ -n "$PORT_PRODUCT" ];then
+        cd $PORT_PRODUCT
+    fi
     $OTA_FROM_TARGET_FILES -n -k $TOOL_DIR/platform $TARGET_FILES_ZIP $OUT_DIR/update_miui.zip
+    cd -
 }
 
 copy_target_files_template
@@ -70,4 +81,5 @@ copy_bootimage
 copy_system_dir
 process_metadata
 zip_target_files
+sign_target_files
 build_ota_package
