@@ -70,7 +70,7 @@ function sign_target_files {
 # build a new full ota package
 function build_ota_package {
     echo "Build full ota package: $OUT_DIR/$OUT_ZIP_FILE"
-    $OTA_FROM_TARGET_FILES -n -k $TOOL_DIR/platform $TARGET_FILES_ZIP $OUT_DIR/$OUT_ZIP_FILE
+    $OTA_FROM_TARGET_FILES -n -k $PORT_ROOT/build/security/testkey $TARGET_FILES_ZIP $OUT_DIR/$OUT_ZIP_FILE
 }
 
 copy_target_files_template

@@ -10,12 +10,12 @@ if [ -z "$PORT_ROOT" ]
 then
     KEYPATH=${KEY_PATH:=.}
 else
-    KEYPATH=${KEY_PATH:=$PORT_ROOT/tools}
+    KEYPATH=${KEY_PATH:=$PORT_ROOT/build/security}
 fi
 
-SIGNAPK=$KEYPATH/signapk.jar
-PEMKEY=$KEYPATH/platform.x509.pem
-PK8KEY=$KEYPATH/platform.pk8
+SIGNAPK=$PORT_ROOT/tools/signapk.jar
+PEMKEY=$KEYPATH/testkey.x509.pem
+PK8KEY=$KEYPATH/testkey.pk8
 
 TMPDIR=.tmp_for_sign
 
