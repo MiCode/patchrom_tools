@@ -240,7 +240,7 @@ function zip_target_files {
 # build a new full ota package
 function build_ota_package {
     echo "Build full ota package: $OUTPUT_OTA_PACKAGE"
-    $OTA_FROM_TARGET_FILES -n -k $TOOL_DIR/platform $TARGET_FILES_ZIP $OUTPUT_OTA_PACKAGE
+    $OTA_FROM_TARGET_FILES -n -k $PORT_ROOT/build/security/testkey $TARGET_FILES_ZIP $OUTPUT_OTA_PACKAGE
 }
 
 function gen_metadata {
