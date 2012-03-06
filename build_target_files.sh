@@ -8,7 +8,8 @@ TARGET_FILES_TEMPLATE_DIR=$PORT_ROOT/tools/target_files_template
 TOOL_DIR=$PORT_ROOT/tools
 OTA_FROM_TARGET_FILES=$TOOL_DIR/releasetools/ota_from_target_files
 SIGN_TARGET_FILES_APKS=$TOOL_DIR/releasetools/sign_target_files_apks
-OUT_ZIP_FILE=$1
+OUT_ZIP_FILE=
+NO_SIGN=false
 
 # copy the whole target_files_template dir
 function copy_target_files_template {
@@ -73,12 +74,21 @@ function build_ota_package {
     $OTA_FROM_TARGET_FILES -n -k $PORT_ROOT/build/security/testkey $TARGET_FILES_ZIP $OUT_DIR/$OUT_ZIP_FILE
 }
 
+if [ $# -eq 2 ];then
+    NO_SIGN=true
+    OUTPUT_ZIP_FILE=$2
+elif [ $# -eq 1 ];then
+    OUTPUT_ZIP_FILE=$1
+fi
+
 copy_target_files_template
 copy_bootimage
 copy_system_dir
 process_metadata
 zip_target_files
 if [ -n "$OUT_ZIP_FILE" ];then
-    sign_target_files
+	if [ "$NO_SIGN" == "false" ];then
+        sign_target_files
+    fi
     build_ota_package
 fi
