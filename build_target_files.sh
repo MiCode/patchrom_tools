@@ -45,7 +45,7 @@ function process_metadata {
     echo "Process metadata"
     cp -f $METADATA_DIR/filesystem_config.txt $TARGET_FILES_DIR/META
     cp -f $METADATA_DIR/recovery.fstab $TARGET_FILES_DIR/RECOVERY/RAMDISK/etc
-    python $TOOL_DIR/uniq_first.py $METADATA_DIR/apkcerts.txt $TARGET_FILES_DIR/META/apkcerts.txt
+    python $TOOL_DIR/uniq_first.py $METADATA_DIR/apkcerts.txt $TARGET_FILES_DIR/META/apkcerts.txt $PWD
     cat $TARGET_FILES_DIR/META/apkcerts.txt | sort > $TARGET_FILES_DIR/temp.txt
     mv $TARGET_FILES_DIR/temp.txt $TARGET_FILES_DIR/META/apkcerts.txt
     recover_link
