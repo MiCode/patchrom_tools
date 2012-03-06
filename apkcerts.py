@@ -6,21 +6,9 @@ import xml
 import xml.dom
 from xml.dom import minidom
 
-def insertToDestText(fileContent, uid, name, shareUserId):    
-    if (1000 == uid) or (1001 == uid):
-        node = "name=\"" + name + "\" certificate=\"build/target/product/security/platform.x509.pem\" private_key=\"build/target/product/security/platform.pk8\""
-    elif 1013 == uid:
-        node = "name=\"" + name + "\" certificate=\"build/target/product/security/media.x509.pem\" private_key=\"build/target/product/security/media.pk8\""
-    elif shareUserId == uid:
-        node = "name=\"" + name + "\" certificate=\"build/target/product/security/shared.x509.pem\" private_key=\"build/target/product/security/shared.pk8\""
-    else:
-        node = "name=\"" + name + "\" certificate=\"build/target/product/security/testkey.x509.pem\" private_key=\"build/target/product/security/testkey.pk8\""
-    print "Insert --> uid: %d     node: %s" %(uid, node)
-    return  node + "\n"
-
 def getName(codePath):
-    if string.rfind(codePath, "/system/app/") > -1:
-        return string.replace(codePath, "/system/app/", "")
+    if codePath.startswith("/system/app"):
+        return codePath.replace("/system/app/", "")
     else :
         return ""
 
@@ -34,27 +22,41 @@ def main():
 
     try:
         xmldoc = minidom.parse(sys.argv[1])
-        packages = xmldoc.getElementsByTagName("package")
     except :
         print "Error: %s doesn't exist or isn't a vaild xml file" %(sys.argv[1])
         sys.exit(1)
 
+    packages = xmldoc.getElementsByTagName("package")
+    sigpkgs = {}
     for pkg in packages:
-        if pkg.attributes["codePath"].value == "/system/app/ContactsProvider.apk":
-            shareUserId = string.atoi(pkg.attributes["sharedUserId"].value)
-            #print shareUserId
-            break
-        
-    fileContent = ""
-    for pkg in packages:
-        if pkg.hasAttribute("userId"):
-                uid = string.atoi(pkg.attributes["userId"].value)
-        else:
-                uid = string.atoi(pkg.attributes["sharedUserId"].value)
         name = getName(pkg.attributes["codePath"].value)
-        if name:
-            fileContent +=  insertToDestText(fileContent, uid, name, shareUserId)
+        cert= pkg.getElementsByTagName("cert")
+        if not cert or not name: continue
+        index = cert[0].getAttribute("index")
+        sigpkgs[index] = sigpkgs.get(index, []) + [name]
 
-    open(sys.argv[2], "w").write(fileContent)
+    sharedUsers = xmldoc.getElementsByTagName("shared-user")
+    sigmap = {}
+    for user in sharedUsers:
+        name = user.getAttribute("name")
+        cert = user.getElementsByTagName("cert")
+        if not cert: continue
+        index = cert[0].getAttribute("index")
+        if name == "android.uid.system":
+            sigmap[index] = "platform"
+        elif name == "android.media":
+            sigmap[index] = "media"
+        elif name == "android.uid.shared":
+            sigmap[index] = "shared"
+        else:
+            sigmap[index] = "testkey"
+
+    with open(sys.argv[2], "w") as f:
+        for keyindex, pkgnames in sigpkgs.items():
+            sig = sigmap[keyindex]
+            for pkgname in pkgnames:
+                line = 'name="{0}" certificate="build/target/product/security/{1}.x509.pem" private_key="build/target/product/security/{1}.pk8"\n'.format(pkgname, sig)
+                f.write(line)
+
 if "__main__" == __name__:
     main()
