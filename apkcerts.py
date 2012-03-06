@@ -48,14 +48,15 @@ def main():
             sigmap[index] = "media"
         elif name == "android.uid.shared":
             sigmap[index] = "shared"
-        else:
-            sigmap[index] = "testkey"
 
     with open(sys.argv[2], "w") as f:
         for keyindex, pkgnames in sigpkgs.items():
-            sig = sigmap[keyindex]
+            sig = sigmap.get(keyindex, None)
             for pkgname in pkgnames:
-                line = 'name="{0}" certificate="build/target/product/security/{1}.x509.pem" private_key="build/target/product/security/{1}.pk8"\n'.format(pkgname, sig)
+                if sig:
+                    line = 'name="{0}" certificate="build/target/product/security/{1}.x509.pem" private_key="build/target/product/security/{1}.pk8"\n'.format(pkgname, sig)
+                else:
+                    line = 'name="{0}" certificate="PRESIGNED" private_key=""\n'.format(pkgname)
                 f.write(line)
 
 if "__main__" == __name__:
