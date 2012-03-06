@@ -76,9 +76,9 @@ function build_ota_package {
 
 if [ $# -eq 2 ];then
     NO_SIGN=true
-    OUTPUT_ZIP_FILE=$2
+    OUT_ZIP_FILE=$2
 elif [ $# -eq 1 ];then
-    OUTPUT_ZIP_FILE=$1
+    OUT_ZIP_FILE=$1
 fi
 
 copy_target_files_template
