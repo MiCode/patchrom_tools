@@ -1,6 +1,7 @@
 #!/bin/bash
 
-last_framework_dir=$PORT_ROOT/android/last-framework
+# $1: the original framework dir name, can be google-framework or last-framework
+last_framework_dir=$PORT_ROOT/android/$1
 current_framework_dir=$PORT_ROOT/android
 target_framework_dir=`pwd`
 temp_dir=$target_framework_dir/temp
@@ -21,9 +22,10 @@ then
 	echo "==>Create temp directory to store the last, current framework smali code with .line removed."
     mkdir -p $temp_dir
 	mkdir -p $temp_dir/current-framework
+	mkdir -p $temp_dir/last-framework
 	mkdir -p $temp_dir/target-framework
 	mkdir -p $reject_dir
-	cp -r $last_framework_dir $temp_dir
+	cp -r $last_framework_dir/* $temp_dir/last-framework
 	cp -r $current_framework_dir/framework.jar.out $temp_dir/current-framework
 	cp -r $current_framework_dir/android.policy.jar.out $temp_dir/current-framework
 	cp -r $current_framework_dir/services.jar.out $temp_dir/current-framework
