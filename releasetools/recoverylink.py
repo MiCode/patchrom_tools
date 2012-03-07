@@ -21,7 +21,7 @@ try:
         filepath[1] = os.path.basename(filepath[1])
         #ln = 'ln -s '+ path+ '/'+ filepath[1] + ' ' + path+ '/'+  filepath[0]
         ln = 'cd ' + path + '/' + dirname + ';' + 'ln -s ' + filepath[1] + ' ' +  filepath[0]
-        print ln
+        #print ln
         os.popen(ln)
 except IOError:
     print r"%s isn't exist" % linkfile_path
