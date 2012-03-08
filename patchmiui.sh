@@ -13,7 +13,8 @@ dst_smali_dir=$3
 temp_dir=$PWD/temp
 temp_old_smali_dir=$temp_dir/old_smali
 temp_new_smali_dir=$temp_dir/new_smali
-temp_dst_smali_dir=$temp_dir/dst_smali
+temp_dst_smali_orig_dir=$temp_dir/dst_smali_orig
+temp_dst_smali_patched_dir=$temp_dir/dst_smali_patched
 reject_dir=$temp_dir/reject
 
 rm -rf $temp_dir
@@ -21,18 +22,19 @@ rm -rf $temp_dir
 echo "<<< create temp directory to store the old, new source and destination smali code with .line removed"
 mkdir -p $temp_old_smali_dir
 mkdir -p $temp_new_smali_dir
-mkdir -p $temp_dst_smali_dir
+mkdir -p $temp_dst_smali_orig_dir
+mkdir -p $temp_dst_smali_patched_dir
 mkdir -p $reject_dir
 
 cp -r $old_smali_dir/*.jar.out $temp_old_smali_dir
 cp -r $new_smali_dir/*.jar.out $temp_new_smali_dir
-cp -r $dst_smali_dir/*.jar.out $temp_dst_smali_dir
+cp -r $dst_smali_dir/*.jar.out $temp_dst_smali_orig_dir
 $PORT_ROOT/tools/rmline.sh $temp_dir
 
 function apply_miui_patch() {
 	old_code_noline=$temp_old_smali_dir/$1
 	new_code_noline=$temp_new_smali_dir/$1
-	dst_code_noline=$temp_dst_smali_dir/$1
+	dst_code_noline=$temp_dst_smali_orig_dir/$1
 	dst_code=$dst_smali_dir/$1
 	dst_code_orig=$dst_code.orig
 
@@ -62,6 +64,8 @@ function apply_miui_patch() {
         patch $dst_code/${file%.diff} -r $reject_dir/$1/${file%.diff}.rej < $file
 	done
 
+	cp -r $dst_code $temp_dst_smali_patched_dir
+
 	cd $dst_code_noline
 	for file in `find ./ -name "*.smali"`
 	do
@@ -72,6 +76,7 @@ function apply_miui_patch() {
 	done
 
     find $dst_code -name "*.smali.orig" -exec rm {} \;
+	find $temp_dst_smali_patched_dir -name "*.smali.orig" -exec rm {} \;
 	rm -rf $dst_code_orig
 }
 
