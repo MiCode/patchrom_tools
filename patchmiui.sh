@@ -1,86 +1,78 @@
 #!/bin/bash
 
-# $1: the original framework dir name, can be google-framework or last-framework
-last_framework_dir=$PORT_ROOT/android/$1
-current_framework_dir=$PORT_ROOT/android
-target_framework_dir=`pwd`
-temp_dir=$target_framework_dir/temp
-reject_dir=$temp_dir/reject
+# $1: the old smali code  $2: the new smali code $3: the destination smali code
 
-RMLINE=$PORT_ROOT/tools/rmline.sh
-function remove_lines() {
-	echo "==>Remove .line from $1/framework.jar.out"
-	$RMLINE $1/framework.jar.out
-	echo "==>Remove .line from $1/services.jar.out"
-	$RMLINE $1/services.jar.out
-	echo "==>Remove .line form $1/android.policy.jar.out"
-	$RMLINE $1/android.policy.jar.out
-}
-
-if [ ! -d $temp_dir ]
-then
-	echo "==>Create temp directory to store the last, current framework smali code with .line removed."
-    mkdir -p $temp_dir
-	mkdir -p $temp_dir/current-framework
-	mkdir -p $temp_dir/last-framework
-	mkdir -p $temp_dir/target-framework
-	mkdir -p $reject_dir
-	cp -r $last_framework_dir/* $temp_dir/last-framework
-	cp -r $current_framework_dir/framework.jar.out $temp_dir/current-framework
-	cp -r $current_framework_dir/android.policy.jar.out $temp_dir/current-framework
-	cp -r $current_framework_dir/services.jar.out $temp_dir/current-framework
-	remove_lines $temp_dir/last-framework
-	remove_lines $temp_dir/current-framework
+if [ $# -ne 3 ];then
+	echo "Usage: patchmiui.sh old_smali_dir new_smali_dir dst_smali_dir"
 fi
 
-function apply_miui_patch() {
-	old_src=$temp_dir/last-framework/$1
-	new_src=$temp_dir/current-framework/$1
-	dst_src=$target_framework_dir/$1
-	dst_src_orig=$dst_src.orig
-	dst_src_noline=$dst_src.noline
+PWD=`pwd`
+old_smali_dir=$1
+new_smali_dir=$2
+dst_smali_dir=$3
+temp_dir=$PWD/temp
+temp_old_smali_dir=$temp_dir/old_smali
+temp_new_smali_dir=$temp_dir/new_smali
+temp_dst_smali_dir=$temp_dir/dst_smali
+reject_dir=$temp_dir/reject
 
-	echo "==>Compute the difference between $old_src and $new_src"
-	cd $old_src
+rm -rf $temp_dir
+
+echo "<<< create temp directory to store the old, new source and destination smali code with .line removed"
+mkdir -p $temp_old_smali_dir
+mkdir -p $temp_new_smali_dir
+mkdir -p $temp_dst_smali_dir
+mkdir -p $reject_dir
+
+cp -r $old_smali_dir/*.jar.out $temp_old_smali_dir
+cp -r $new_smali_dir/*.jar.out $temp_new_smali_dir
+cp -r $dst_smali_dir/*.jar.out $temp_dst_smali_dir
+$PORT_ROOT/tools/rmline.sh $temp_dir
+
+function apply_miui_patch() {
+	old_code_noline=$temp_old_smali_dir/$1
+	new_code_noline=$temp_new_smali_dir/$1
+	dst_code_noline=$temp_dst_smali_dir/$1
+	dst_code=$dst_smali_dir/$1
+	dst_code_orig=$dst_code.orig
+
+	echo "<<< compute the difference between $old_code_noline and $new_code_noline"
+	cd $old_code_noline
 	for file in `find ./ -name "*.smali"`
 	do
-       	if [ -f $new_src/$file ]
+       	if [ -f $new_code_noline/$file ]
        	then
-        	diff $file $new_src/$file > /dev/null || {
-					diff -B -c $file $new_src/$file > $file.diff
+        	diff $file $new_code_noline/$file > /dev/null || {
+					diff -B -c $file $new_code_noline/$file > $file.diff
 			}
        	else
-        	echo "$file does not exist at $new_src"
+        	echo "$file does not exist at $new_code_noline"
        	fi
 	done
 
-	cd $dst_src/..
-	cp -r $dst_src $dst_src_orig
-	echo "==>Remove .line from $dst_src"
-	$RMLINE $dst_src
+	cd $dst_smali_dir
+	mv $dst_code $dst_code_orig
+	cp -r $dst_code_noline $dst_code
 
-	echo "==>Apply the patch into the $dst_src"
-	cp -r $dst_src $dst_src_noline
-	cd $old_src
+	echo "<<< apply the patch into the $dst_code"
+	cd $old_code_noline
 	for file in `find ./ -name "*.smali.diff"`
 	do
 		mkdir -p $reject_dir/$1/`dirname $file`
-        patch $dst_src/${file%.diff} -r $reject_dir/$1/${file%.diff}.rej < $file
+        patch $dst_code/${file%.diff} -r $reject_dir/$1/${file%.diff}.rej < $file
 	done
 
-	echo "==>Add .line back to the $dst_src"
-	cd $dst_src_noline
+	cd $dst_code_noline
 	for file in `find ./ -name "*.smali"`
 	do
         rm -f $file.diff
-        diff -B -c $file $dst_src_orig/$file > $file.diff
-        patch -f $dst_src/$file -r /dev/null < $file.diff >/dev/null 2>&1
+        diff -B -c $file $dst_code_orig/$file > $file.diff
+        patch -f $dst_code/$file -r /dev/null < $file.diff >/dev/null 2>&1
 		rm -f $file.diff
 	done
 
-    find $dst_src -name "*.smali.orig" -exec rm {} \;
-	rm -rf $dst_src_orig
-	mv $dst_src_noline $temp_dir/target-framework/$1
+    find $dst_code -name "*.smali.orig" -exec rm {} \;
+	rm -rf $dst_code_orig
 }
 
 apply_miui_patch android.policy.jar.out
@@ -89,4 +81,4 @@ apply_miui_patch framework.jar.out
 
 echo
 echo
-echo "==>Patch miui into target framework is done. Please look at $reject_dir to resolve any conflicts!"
+echo ">>> patch miui into target framework is done. Please look at $reject_dir to resolve any conflicts!"
