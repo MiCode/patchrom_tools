@@ -18,7 +18,8 @@ public class FileCheck {
         File[] files = dir.listFiles();
         for (File f : files) {
             if (true == f.isFile()) {
-                if (true == getExtensionName(f.getName()).equals("xml")) {
+                //if (true == getExtensionName(f.getName()).equals("xml")) {
+                if(true == f.getName().endsWith(".xml") || true == f.getName().endsWith(".xml.part")){
                     fileArray.add(f);
                 }
             } else {
