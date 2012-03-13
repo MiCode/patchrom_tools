@@ -29,3 +29,23 @@ do
             echo "Have $mf but $af does not exist!"
        fi
 done
+
+for mf in `find $miui -name "*.aidl"`
+do
+       af=${mf/$miui/$android}
+       if [ -f "$af" ]
+       then
+        diff $af $mf > /dev/null || {
+                #echo $af is different with $mf;
+                arf=${af/$android/$android_rlz}
+                mkdir -p `dirname $arf`
+                cp $af $arf
+                rf=${mf/$miui/$release}
+                mkdir -p `dirname $rf`
+                cp $mf $rf
+            }
+       else
+            echo "Have $mf but $af does not exist!"
+       fi
+done
+
