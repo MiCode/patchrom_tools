@@ -327,6 +327,7 @@ name="ExchangeTests.apk" certificate="build/target/product/security/testkey.x509
 name="FileExplorer.apk" certificate="build/target/product/security/platform.x509.pem" private_key="build/target/product/security/platform.pk8"
 name="Gallery.apk" certificate="build/target/product/security/testkey.x509.pem" private_key="build/target/product/security/testkey.pk8"
 name="Gallery2.apk" certificate="build/target/product/security/testkey.x509.pem" private_key="build/target/product/security/testkey.pk8"
+name="MiuiGallery.apk" certificate="build/target/product/security/testkey.x509.pem" private_key="build/target/product/security/testkey.pk8"
 name="Gallery2Tests.apk" certificate="build/target/product/security/media.x509.pem" private_key="build/target/product/security/media.pk8"
 name="HTMLViewer.apk" certificate="build/target/product/security/testkey.x509.pem" private_key="build/target/product/security/testkey.pk8"
 name="KeyChain.apk" certificate="build/target/product/security/platform.x509.pem" private_key="build/target/product/security/platform.pk8"
