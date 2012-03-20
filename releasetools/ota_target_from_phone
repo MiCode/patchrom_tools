@@ -125,7 +125,7 @@ function dump_bootimage {
 # In recovery mode, extract the recovery.fstab from device
 function extract_recovery_fstab {
     echo "Extract recovery.fstab from device"
-    adb shell cat /etc/recovery.fstab > $RECOVERY_ETC_DIR/recovery.fstab
+    adb shell cat /etc/recovery.fstab | awk '{print $1 "\t" $2 "\t" $3}'> $RECOVERY_ETC_DIR/recovery.fstab
 }
 
 # In normal mode, build the recovery.fstab from device
