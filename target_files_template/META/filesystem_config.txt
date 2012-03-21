@@ -1,2 +1,3 @@
 system/xbin/invoke-as 0 0 6755
+system/xbin/su 0 0 6755
 
