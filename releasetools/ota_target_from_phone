@@ -174,7 +174,16 @@ function build_filesystem_config {
     adb push $TOOL_DIR/releasetools/getfilesysteminfo /system/xbin
     adb shell chmod 0777 /system/xbin/getfilesysteminfo
     adb shell /system/xbin/getfilesysteminfo --info /system >> $META_DIR/filesystem_config.txt
-    cat $META_DIR/filesystem_config.txt | col -b | sed -e '/getfilesysteminfo/d' > $META_DIR/tmp.txt
+    fs_config=`cat $META_DIR/filesystem_config.txt | col -b | sed -e '/getfilesysteminfo/d'`
+    OLD_IFS=$IFS
+    IFS=$'\n'
+    for line in $fs_config
+    do
+        echo $line | grep -q -e "\<su\>" && continue
+        echo $line | grep -q -e "\<invoke-as\>" && continue
+        echo $line >> $META_DIR/tmp.txt
+    done
+    IFS=$OLD_IFS
     cat $META_DIR/tmp.txt | sort > $META_DIR/filesystem_config.txt
     rm $META_DIR/tmp.txt
 }
