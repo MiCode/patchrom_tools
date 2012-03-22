@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# this is a git format-patch command wrapper
+
+git config --global diff.external $PORT_ROOT/tools/git_smali_diff
+
+git format-patch --ext-diff --stdout $*
+
+git config --global --remove-section  diff
+

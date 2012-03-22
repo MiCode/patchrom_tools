@@ -9,7 +9,7 @@ fi
 
 # todo run me under product dir, such as i9100
 WS_DIR=`pwd`
-APKTOOL=/home/gexudong/patchrom.ics/tools/apktool
+APKTOOL=$PORT_ROOT/tools/apktool
 
 # such as app/Phone (no .apk here)
 APPFRM=$1
