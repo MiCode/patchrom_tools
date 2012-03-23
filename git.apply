@@ -25,11 +25,11 @@ git apply --reject $1
 
 for f in $files; do
     $RM_LINE -r $f
-    rm -f $f.orig
+    ls $f.rej >/dev/null 2>&1 || rm -f $f.orig
 done
 
 echo
-echo ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-echo + Summary: following patches are rejected and need merge manullay... +
-echo ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+echo ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+echo + Summary: following patches are rejected and merge is required. +
+echo ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 find . -name "*.rej"
