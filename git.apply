@@ -4,7 +4,18 @@
 
 RM_LINE=$PORT_ROOT/tools/rmline.sh
 
-files=`grep "^ .*\.smali.*|" $1 | sed -e "s/|.*$//" -e "s/ //g"`
+patch_files=`grep "^ .*\.smali.*|" $1 | sed -e "s/|.*$//" -e "s/ //g"`
+files=
+
+for f in $patch_files; do
+    if [ -f "$f" ]; then
+        files="$files $f"
+    else
+        dirfile=`find . -path "${f/.../*}"`
+        #echo find file [$f]: $dirfile
+        files="$files $dirfile"
+    fi
+done
 
 for f in $files; do
     $RM_LINE $f
@@ -17,3 +28,8 @@ for f in $files; do
     rm -f $f.orig
 done
 
+echo
+echo ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+echo + Summary: following patches are rejected and need merge manullay... +
+echo ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+find . -name "*.rej"
