@@ -390,12 +390,16 @@ def WriteFullOTAPackage(input_zip, output_zip):
   if OPTIONS.wipe_user_data:
     script.FormatPartition("/data")
 
+  script.Print("Formatting system...")
   script.Unmount("/system")
   script.FormatPartition("/system")
+
+  script.Print("Installing system files...")
   script.Mount("/system")
   #script.UnpackPackageDir("recovery", "/system")
   script.UnpackPackageDir("system", "/system")
 
+  script.Print("Creating system links...")
   (symlinks, retouch_files) = CopySystemFiles(input_zip, output_zip)
   script.MakeSymlinks(symlinks)
   # if OPTIONS.aslr_mode:
@@ -409,9 +413,11 @@ def WriteFullOTAPackage(input_zip, output_zip):
   #                                        OPTIONS.input_tmp, "RECOVERY")
   # MakeRecoveryPatch(output_zip, recovery_img, boot_img)
 
+  script.Print("Set permission...")
   Item.GetMetadata(input_zip)
   Item.Get("system").SetPermissions(script)
 
+  script.Print("Update Boot image...")
   if boot_img:
     common.CheckSize(boot_img.data, "boot.img", OPTIONS.info_dict)
     common.ZipWriteStr(output_zip, "boot.img", boot_img.data)
