@@ -1,19 +1,6 @@
 #!/bin/bash
-set -- `getopt "p:h:" "$@"`
-hanhua=
-while :
-do
-case "$1" in
-    -p) shift; path="$1/" ;;
-    -h) shift; hanhua="$1";;
-    --) break ;;
-esac
-shift
-done
-shift
 
 TOOL_PATH=${path:=}
-TMPDIR=tmp_for_deodex
 
 if [ -z "`which ${TOOL_PATH}baksmali`" ]
 then
@@ -39,37 +26,55 @@ function deodex_one_file() {
     mv $tofile.aligned $tofile
 }
 
-mkdir $TMPDIR || { echo "Failed to mkdir $TMPDIR"; exit -4; }
-cd $TMPDIR
+if [ $# -ne 1 ] || [ $1 = '--help' ] 
+then
+    echo "usage: ./deodex.sh absolute_path_to_ota_file"
+    exit 0
+fi    
 
-echo "To pull all framework and app files from phone..."
-#adb pull /system/framework framework 
-#adb pull /system/app app 
-cp -r /home/gexudong/patchrom.ics/i9100/.build/ZIP/system/framework framework
-cp -r /home/gexudong/patchrom.ics/i9100/.build/ZIP/system/app app
+stockzip=$1
+temppath=`echo $PWD`
+tempdir=`mktemp -p $temppath -d tempdir.XXX`
+echo "temp dir: $tempdir"
+echo "unzip $stockzip to $tempdir"
+unzip -q $stockzip -d $tempdir
 
-deodex_one_file "" framework/core.odex jar
+cd $tempdir/[Ss][Yy][Ss][Tt][Ee][Mm]
+
+ls framework/core.odex > /dev/null
+if [ $? -eq 0 ] 
+then
+    deodex_one_file "" framework/core.odex jar
+fi
 
 for f in framework/*.jar
 do
     classpath=$classpath:$f
 done
-echo "classpath=$classpath"
+#echo "classpath=$classpath"
 
-for file in framework/*.odex
-do
-    deodex_one_file $classpath $file jar
-done
+ls framework/*.odex > /dev/null
+if [ $? -eq 0 ]
+then
+    for file in framework/*.odex
+    do
+        deodex_one_file $classpath $file jar
+    done
+fi
 
-for file in app/*.odex
-do
-    deodex_one_file $classpath $file apk
-done
+ls app/*.odex > /dev/null
+if [ $? -eq 0 ]
+then
+    for file in app/*.odex
+    do
+        deodex_one_file $classpath $file apk
+    done
+fi
 
-echo "Push the result jars and apks to phone"
-rm -rf /home/gexudong/patchrom.ics/i9100/.build/ZIP/system/framework
-rm -rf /home/gexudong/patchrom.ics/i9100/.build/ZIP/system/app
-cp -r framework /home/gexudong/patchrom.ics/i9100/.build/ZIP/system/
-cp -r app       /home/gexudong/patchrom.ics/i9100/.build/ZIP/system/
-
-echo "Leave all locale files at $TMPDIR, and delete it manually for next executing"
+cd $tempdir
+echo "zip tmp_target_files"
+zip -q -r -y "tmp_target_files" *
+echo "replaces $stockzip"
+cp -f "tmp_target_files.zip" $stockzip
+rm -rf $tempdir
+echo "Leavm all locale files at $tempdir, and delete it manually for next executing"
