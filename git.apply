@@ -4,6 +4,7 @@
 
 RM_LINE=$PORT_ROOT/tools/rmline.sh
 
+bin_files=`grep "^ .*| *Bin[ 0-9]\+->[ 0-9]\+" $1 | sed -e "s/|.*$//" -e "s/ //g"`
 patch_files=`grep "^ .*\.smali.*|" $1 | sed -e "s/|.*$//" -e "s/ //g"`
 files=
 
@@ -29,7 +30,18 @@ for f in $files; do
 done
 
 echo
-echo ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-echo + Summary: following patches are rejected and merge is required. +
-echo ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-find . -name "*.rej"
+echo +++++++++++
+echo + Summary +
+echo +++++++++++
+rej_files=`find . -name "*.rej"`
+if [ -n "$rej_files" ]; then
+    echo + Following patches are rejected and merge is required.
+    echo $rej_files
+fi
+if [ -n "$bin_files" ]; then
+    echo + Binary files need to be copied manully.
+    echo $bin_files
+fi
+if [ -z "$ref_files$bin_files" ]; then
+    echo + Apply patch successfully!
+fi
