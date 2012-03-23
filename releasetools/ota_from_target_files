@@ -167,7 +167,10 @@ class Item:
 
     for line in output.split("\n"):
       if not line: continue
-      name, uid, gid, mode = line.split()
+      rows = line.split()
+      length = len(rows)
+      name = ' '.join(rows[0:length-3])
+      uid, gid, mode = rows[length-3:]
       i = cls.ITEMS.get(name, None)
       if i is not None:
         i.uid = int(uid)
