@@ -1,18 +1,28 @@
 #!/bin/bash
 
+tmp_loc=/tmp/rmline
+
+# $2 is the file name with the full absolute path
 function rm_line() {
     local action=$1
     local file=$2
-    local diff_file=$file-{line}.diff
+    local diff_file=$tmp_loc$file.line
 
     if [ "$action" == "remove" ]; then
         mv $file $file.original
         more $file.original | sed -e '/^\s*\.line.*$/d' | sed -e 's/\/jumbo//' > $file
-        diff -B -c $file $file.original > $diff_file
+        diff $file $file.original > /dev/null || {
+                mkdir -p `dirname $diff_file`
+                diff -B -c $file $file.original > $diff_file
+            }
         rm $file.original
     else
-        patch -f $file -r /dev/null < $diff_file >/dev/null 2>&1
-        rm -f $diff_file
+        if [ -f $diff_file ]; then
+            patch -f $file -r /dev/null < $diff_file >/dev/null 2>&1
+            rm -f $diff_file
+        else
+            echo "Warning: line info file ($diff_file) does not exist" >&2
+        fi
     fi
 }
 
@@ -22,12 +32,14 @@ if [ "$1" == "-r" ]; then
     shift
 fi
 
-if [ -f "$1" ]; then
-    rm_line $action $1
-    exit
+p=`pwd`
+full=`echo $1 | sed -e "s#\(^[^\/]\)#$p/\1#"`
+if [ -f "$full" ]; then
+    echo $full | grep .smali$ > /dev/null && rm_line $action $full
+    exit 0
 fi
 
-for file in `find $1 -name "*.smali"`
+for file in `find $full -name "*.smali"`
 do
     rm_line $action $file
 done
