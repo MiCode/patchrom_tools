@@ -741,8 +741,10 @@ class Difference(object):
     try:
       ptemp = tempfile.NamedTemporaryFile()
       if isinstance(diff_program, list):
+        diff_program[0] = os.path.join(OPTIONS.search_path, "releasetools", diff_program[0])
         cmd = copy.copy(diff_program)
       else:
+        diff_program = os.path.join(OPTIONS.search_path, "releasetools", diff_program)
         cmd = [diff_program]
       cmd.append(stemp.name)
       cmd.append(ttemp.name)
