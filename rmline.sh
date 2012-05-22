@@ -1,6 +1,7 @@
 #!/bin/bash
 
-tmp_loc=/tmp/rmline
+who=`whoami`
+tmp_loc=/tmp/rmline_$who
 
 # $2 is the file name with the full absolute path
 function rm_line() {
