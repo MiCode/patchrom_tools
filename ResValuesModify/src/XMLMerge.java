@@ -25,6 +25,7 @@ import java.util.regex.Matcher;
 public class XMLMerge {
     private ArrayList<File> mSrcFiles;
     private ArrayList<File> mDestFiles;
+    private boolean mIsAppRes = false;
 
     public static final int MERGE_MATCH_ALL = 0;
     public static final int MERGE_DONT_NEED_MERGE = 1;
@@ -34,9 +35,10 @@ public class XMLMerge {
     public static final int MERGE_MODIFY_ELEMENT = 5;
     public static final int MERGE_FAILED = 6;
     
-    public XMLMerge(ArrayList<File> srcFiles, ArrayList<File> destFiles) {
+    public XMLMerge(ArrayList<File> srcFiles, ArrayList<File> destFiles, boolean isAppRes) {
         mSrcFiles = srcFiles;
         mDestFiles = destFiles;
+        mIsAppRes = isAppRes;
     }
 
     public void merge() {
@@ -420,7 +422,9 @@ public class XMLMerge {
 
         ArrayList<String> subStrArray = new ArrayList<String>();
         subStrArray.add("//#document");
-        subStrArray.add("android:");
+        if(!mIsAppRes){
+            subStrArray.add("android:");
+        }
         xpathStr = delSubString(xpathStr, subStrArray);
 
         //System.out.println("post:" + xpathStr);

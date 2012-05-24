@@ -1,12 +1,13 @@
 #!/bin/bash
 
-if [ $# -ne 2 ]
+if [ $# -ne 2  -a  $# -ne 3 ]
 then
-	echo "ERROR: just accept two input parameters"
+	echo "usage: ResValuesModify $1 $2 [--app]"
 	echo "	\$1 is the miui values dir"
 	echo "	\$2 is the third-party values dir"
+	echo "	\$3: Merge application's resource, default merge framework-res's resource"
 else
-   java -jar $PORT_ROOT/tools/ResValuesModify/jar/ResValuesModify.jar $1 $2
+   java -jar $PORT_ROOT/tools/ResValuesModify/jar/ResValuesModify.jar $*
 fi
 
 

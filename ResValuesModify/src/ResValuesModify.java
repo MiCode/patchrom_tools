@@ -4,6 +4,7 @@ import java.util.ArrayList;
 public class ResValuesModify {
     private ArrayList<File> mSrcFileArray;
     private ArrayList<File> mDestFileArray;
+    private boolean mIsAppRes = false;
 
     public static void main(String[] args) {
         ResValuesModify resVM = new ResValuesModify();
@@ -29,7 +30,7 @@ public class ResValuesModify {
     }
 
     private boolean parseCommandLine(String[] args) {
-        if (2 != args.length) {
+        if ((2 != args.length) && (3 != args.length)){
             usage();
             return false;
         }
@@ -38,6 +39,10 @@ public class ResValuesModify {
             System.out.println("ERROR: src dir is the same with dest dir");
             usage();
             return false;
+        }
+        
+        if((3 == args.length) && ("--app".equals(args[2]))){
+            mIsAppRes = true;
         }
         return true;
     }
@@ -71,13 +76,14 @@ public class ResValuesModify {
     }
 
     private void mergeXML() {
-        XMLMerge xmlMerge = new XMLMerge(mSrcFileArray, mDestFileArray);
+        XMLMerge xmlMerge = new XMLMerge(mSrcFileArray, mDestFileArray, mIsAppRes);
         xmlMerge.merge();
     }
 
     private void usage() {
-        System.out.println("usage: ResValuesModify $1 $2");
+        System.out.println("usage: ResValuesModify $1 $2 [--app]");
         System.out.println("\t$1: Miui values dir");
         System.out.println("\t$2: ThirdParty values dir");
+        System.out.println("\t$3: Merge application's resource, default merge framework-res's resource");
     }
 }
