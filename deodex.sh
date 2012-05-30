@@ -5,7 +5,7 @@ SMALI=$TOOL_PATH/smali
 BAKSMALI=$TOOL_PATH/baksmali
 
 function deodex_one_file() {
-    if [ $1 = '-a' ]
+    if [ "$1" = '-a' ]
     then
         apilevel=$2
         classpath=$3
