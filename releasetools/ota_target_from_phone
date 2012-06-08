@@ -191,8 +191,7 @@ function build_filesystem_config {
 # recover the device files' symlink information
 function recover_symlink {
     echo "Run getfilesysteminfo and recoverylink.py to recover symlink"
-
-    adb shell /system/xbin/getfilesysteminfo --link /system | sort > $SYSTEM_DIR/linkinfo.txt
+    adb shell /system/xbin/getfilesysteminfo --link /system | sed -e '/\<su\>/d;/\<invoke-as\>/d' | sort > $SYSTEM_DIR/linkinfo.txt
     python $TOOL_DIR/releasetools/recoverylink.py $TARGET_FILES_DIR
     adb shell rm /system/xbin/getfilesysteminfo
 }
@@ -233,6 +232,8 @@ function remount_system_device {
 function build_SYSTEM {
     echo "Extract the whole /system from device"
     adb pull /system $SYSTEM_DIR
+    find $SYSTEM_DIR -name su | xargs rm -f
+    find $SYSTEM_DIR -name invoke-as | xargs rm -f
     remount_system_device
     build_filesystem_config
     recover_symlink
