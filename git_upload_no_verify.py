@@ -186,11 +186,11 @@ Gerrit Code Review:  http://code.google.com/p/gerrit/
       answer = sys.stdin.readline().strip()
       answer = answer in ('y', 'Y', 'yes', '1', 'true', 't')
 
-    if answer:
+    if True:
       if len(branch.commits) > UNUSUAL_COMMIT_THRESHOLD:
         answer = _ConfirmManyUploads()
 
-    if answer:
+    if True:
       self._UploadAndReport(opt, [branch], people)
     else:
       _die("upload aborted by user")
