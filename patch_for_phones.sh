@@ -7,7 +7,7 @@ GIT_UPLOAD_TOOL_PATH=$PORT_ROOT/.repo/repo/subcmds/
 GIT_UPLOAD_TOOL_NO_VERIFY=$PORT_ROOT/tools/git_upload_no_verify.py
 
 function check_parameter {
-    if [ "/android" =  "$PORT_ROOT" ]; then
+    if [ "/android" =  "$ANDROID_PATH" ]; then
         echo "ERROR: didn't config env"
         return 1
     fi
