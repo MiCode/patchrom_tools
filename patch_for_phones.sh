@@ -4,7 +4,7 @@
 #{JAR_DIVIDE}:sensation:framework.jar.out|widget.jar.out
 #{JAR_DIVIDE}:razr:framework.jar.out|framework-ext.jar.out
 
-PHONES=honor:lt18i:p1:i9100:gnote:mx:sensation:onex:ones:razr
+PHONES=honor:lt18i:p1:i9100:gnote:mx:sensation:onex:ones:razr:i9300:lt26i
 
 ANDROID_PATH=$PORT_ROOT/android
 GIT_UPLOAD_TOOL_PATH=$PORT_ROOT/.repo/repo/subcmds
