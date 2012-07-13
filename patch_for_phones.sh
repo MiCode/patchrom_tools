@@ -1,53 +1,73 @@
 #!/bin/bash
 
-#{JAR_DIVIDE}:i9100:framework.jar.out|framework2.jar.out
-#{JAR_DIVIDE}:sensation:framework.jar.out|widget.jar.out
-#{JAR_DIVIDE}:razr:framework.jar.out|framework-ext.jar.out
-
 PHONES=honor:lt18i:p1:i9100:gnote:mx:sensation:onex:ones:razr:i9300:lt26i:vivo
 
-ANDROID_PATH=$PORT_ROOT/android
 GIT_UPLOAD_TOOL_PATH=$PORT_ROOT/.repo/repo/subcmds
 GIT_UPLOAD_TOOL_NO_VERIFY=$PORT_ROOT/tools/git_upload_no_verify.py
 PATCH_SH=$PORT_ROOT/tools/patch_for_phones.sh
 PATCH_SWAP_PATH=$PORT_ROOT/android/patch
 MERGE_DIVIDE_TOOLS=$PORT_ROOT/tools/merge_divide_jar_out.sh
 
-function check_parameter {
-    cd $ANDROID_PATH
+WHITE='\033[37m'
+GRAY='\033[30m'
+BLUE='\033[34m'
+GREEN='\033[92m'
+YELLOW='\033[33m'
+RED='\033[91m'
+ENDC='\033[1;m'
+
+ERROR="${RED}ERROR$ENDC"
+
+function check_commits_parameter {
+    phone="$1"
+    pre="$2"
+    post="$3"
+
+    cd "$PORT_ROOT/$phone" 2>/dev/null 1>/dev/null 
+    if [ $? -ne 0 ]; then
+        echo -e "***\n$ERROR:[$phone] is wrong phone's name\n***" 
+        return 1
+    fi
+
     all_commit=`git log --oneline | cut -d' ' -f1`
     all_commit=`echo $all_commit | sed -e "s/\s\+/:/g"`
-    if [ "$1" = "$2" ]; then
-        echo "ERROR: commit NO. is same"
+    if [ "$pre" = "$post" ]; then
+        echo -e "$ERROR: commit NO. is same"
         return 1
     fi
-    echo $all_commit | grep -q "$1"
+
+    echo $all_commit | grep -q "$pre"
     if [ $? -ne 0 ]; then
-        echo "ERROR: can't find commit $1"
+        echo -e "$ERROR: can't find commit $pre"
         return 1
     fi
-    echo $all_commit | grep -q "$2" 
+    echo $all_commit | grep -q "$post" 
     if [ $? -ne 0 ]; then 
-        echo "ERROR: can't find commit $2"
+        echo -e "$ERROR: can't find commit $post"
         return 1
     fi
+
     OLD_IFS="$IFS"
     IFS=$':'
     for commit in $all_commit;do
-        echo $commit | grep -q $1 && echo "ERROR: $1 is ahead than $2" && IFS="$OLD_IFS" && return 1 
-        echo $commit | grep -q $2 && break
+        echo $commit | grep -q $pre && echo -e "$ERROR: $pre is ahead than $post" && IFS="$OLD_IFS" && return 1 
+        echo $commit | grep -q $post && break
     done
     IFS="$OLD_IFS"
     return 0
 }
 
 function get_commit_list {
-    cd "$ANDROID_PATH"
+    phone="$1"
+    pre="$2"
+    post="$3"
+
+    cd "$PORT_ROOT/$phone"
     all_commit=`git log --oneline | cut -d' ' -f1`
     all_commit=`echo $all_commit | sed -e "s/\s\+/:/g"`
 
-    commit_list=`echo $all_commit | sed -e "s/$1.*$//g" | sed -e "s/^.*$2//g"`
-    commit_list="$2$commit_list$1:"
+    commit_list=`echo $all_commit | sed -e "s/$pre.*$//g" | sed -e "s/^.*$post//g"`
+    commit_list="$post$commit_list$pre:"
     commit_list=`echo $commit_list | tac -s ":"`
     echo "$commit_list"
 }
@@ -63,12 +83,19 @@ function recovery_git_upload_tool {
 }
     
 function patch_for_one_phone {
-    commit="$1"
-    msg="$2"
-    phone="$3"
+    from="$1"
+    phone="$2"
+    commit="$3"
+    msg="$4"
 
     echo -n "$phone"
-    cd "$PORT_ROOT/$phone"
+
+    cd "$PORT_ROOT/$phone" 2>/dev/null 1>/dev/null 
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}\t\t NO SUCH PHONE$ENDC" 
+        return 1
+    fi
+
     result="success"
     git clean -df  2>/dev/null 1>/dev/null
     git checkout . 2>/dev/null 1>/dev/null
@@ -76,18 +103,18 @@ function patch_for_one_phone {
     repo sync . 2>/dev/null 1>/dev/null
 
     $MERGE_DIVIDE_TOOLS -m $phone
-    apply_log=`git.apply $ANDROID_PATH/patch/patch.$commit 2>&1`
+    apply_log=`git.apply $PATCH_SWAP_PATH/$from-patch.$commit 2>&1`
     $MERGE_DIVIDE_TOOLS -d $phone
 
-    echo $apply_log | grep -q "error: while searching for:" && result="failed"
-    echo $apply_log | grep -q -e "error:.*: No such file or directory" && result="failed"
-    echo $apply_log | grep -q "Rejected" && result="failed"
-    git status | grep -q "smali.rej" && result="failed"
+    echo $apply_log | grep -q "error: while searching for:" && result="${RED}failed$ENDC"
+    echo $apply_log | grep -q -e "error:.*: No such file or directory" && result="${RED}failed$ENDC"
+    echo $apply_log | grep -q "Rejected" && result="${RED}failed$ENDC"
+    git status | grep -q "smali.rej" && result="${RED}failed$ENDC"
    
     if [ $result = "success" ];then
         git add .  2>/dev/null 1>/dev/null
         git commit -m "$msg" 2>/dev/null 1>/dev/null
-        repo upload .  2>/dev/null 1>/dev/null
+        #repo upload .  2>/dev/null 1>/dev/null
     else
         git clean -df 2>/dev/null 1>/dev/null
         git checkout . 2>/dev/null 1>/dev/null
@@ -101,85 +128,242 @@ function patch_for_one_phone {
 }
 
 function patch_for_phones {
-    commit="$1"
-    msg="$2"
+    from="$1"
+    to="$2"
+    commit="$3"
+    msg="$4"
+
     OLD_IFS="$IFS"
     IFS=$':'
-    for phone in $PHONES
+    for phone in $to
     do
-        patch_for_one_phone "$commit" "$msg" "$phone"
+        patch_for_one_phone "$from" "$phone" "$commit" "$msg"
     done
     IFS="$OLD_IFS"
-    
 }
 
 function patch_one_commit {
-    cd "$ANDROID_PATH"
-    t="$1"
-    h="$2"
-    mkdir $ANDROID_PATH/patch -p
-    git.patch $t..$h > $PATCH_SWAP_PATH/patch.$2
-    msg=`git log $h --oneline -1 -1 | sed "s/$h //g"`
+    from="$1"
+    to="$2"
+    tail="$3"
+    head="$4"
+
+    cd "$PORT_ROOT/$from"
+    mkdir $PATCH_SWAP_PATH -p
+    git.patch $tail..$head > $PATCH_SWAP_PATH/$from-patch.$head
+    msg=`git log $head --oneline -1 -1 | sed "s/$head //g"`
     echo ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    echo "[ID] $h [MSG] $msg"
-    patch_for_phones "$h" "$msg"
+    echo -e "${BLUE}[ID] $head [MSG] $msg$ENDC"
+    patch_for_phones "$from" "$to" "$head" "$msg"
     echo ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     echo -e "\n"
 }
 
 function patch_commits {
-    pre=$1
-    post=$2
+    from="$1"
+    to="$2"
+    pre="$3"
+    post="$4"
 
-    check_parameter $pre $post || exit 1
-    commit_list=`get_commit_list $pre $post`
+    check_commits_parameter $from $pre $post || exit 1
+
+    commit_list=`get_commit_list $from $pre $post`
     echo
     echo ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    echo "THESE COMMITS NEED TO PATCH:"
+    echo -e "THESE COMMITS FROM [${RED}$from$ENDC] NEED TO PATCH:"
     echo -n "  "
-    echo "|->"`echo $commit_list | sed "s/:/ /g" | sed "s/$pre//g"`"->|"
+    echo -e "${YELLOW}|->"`echo $commit_list | sed "s/:/ /g" | sed "s/$pre//g"`"->|$ENDC"
     echo ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     echo 
     
     while [ "$post" != "`echo $commit_list | cut -d':' -f1`" ]
     do
-        h=`echo $commit_list | cut -d':' -f2`
-        t=`echo $commit_list | cut -d':' -f1`
-        commit_list="`echo $commit_list | sed \"s/$t://g\"`"
+        head=`echo $commit_list | cut -d':' -f2`
+        tail=`echo $commit_list | cut -d':' -f1`
+        commit_list="`echo $commit_list | sed \"s/$tail://g\"`"
         replace_git_upload_tool
 
-        patch_one_commit $t $h
+        patch_one_commit $from $to $tail $head
 
         recovery_git_upload_tool
     done
 }
 
-if [ "/android" =  "$ANDROID_PATH" ]; then
-    echo "ERROR: didn't config env"
+function execute {
+    OLD_IFS="$IFS"
+    IFS=$' \t\n'
+    cmdstr=$1
+    echo $cmdstr | grep ";" -q
+    if [ $? -eq 0 ];then
+        for (( i = 1; ; i++ ))
+        {
+            cmd=`echo $cmdstr | cut -d';' -f$i`
+            [ -z "$cmd" ] && break
+            echo -e "$YELLOW++++RESULT OF [$cmd]++++$ENDC"
+            $cmd
+            echo
+        }
+    else
+        echo -e "$YELLOW++++RESULT OF [$cmdstr]++++$ENDC"
+        $cmdstr
+    fi
+    IFS=$OLD_IFS
+}
+
+function execute_for_phones {
+    phones="$1"
+    if [ "$phones" = "all" ];then
+        phones=$PHONES
+    fi
+    cmdstr="$2"
+    
+    OLD_IFS="$IFS"
+    IFS=$':'
+    for phone in $phones
+    do
+        echo -e "\n*****************************************************"
+        cd $PORT_ROOT/$phone 2>/dev/null 1>/dev/null
+        if [ $? -ne 0 ]; then
+            echo -e "***\n$ERROR:[$phone] is wrong phone's name\n***" 
+            continue
+        fi
+        echo -e "${BLUE}EXECUTE [$cmdstr] for [$phone]$ENDC"
+        execute $cmdstr
+    done
+    IFS="$OLD_IFS"
+}
+
+function merge_jar_out_for_phones {
+    phones="$1"
+    
+    if [ "$phones" = "all" ];then
+        phones=$PHONES
+    fi
+
+    OLD_IFS="$IFS"
+    IFS=$':'
+    for phone in $phones
+    do
+        cd "$PORT_ROOT/$phone" 2>/dev/null 1>/dev/null 
+        if [ $? -ne 0 ]; then
+            echo -e "***\n$ERROR:[$phone] is wrong phone's name\n***" 
+            continue
+        fi
+        echo -e "${BLUE}MERGE jar.out for [$phone]$ENDC\n"
+        $MERGE_DIVIDE_TOOLS "-m" "$phone"
+    done
+    IFS="$OLD_IFS"
+}
+
+function divide_jar_out_for_phones {
+    phones="$1"
+    
+    if [ "$phones" = "all" ];then
+        phones=$PHONES
+    fi
+
+    OLD_IFS="$IFS"
+    IFS=$':'
+    for phone in $phones
+    do
+        cd "$PORT_ROOT/$phone" 2>/dev/null 1>/dev/null 
+        if [ $? -ne 0 ]; then
+            echo -e "***\n$ERROR:[$phone] is wrong phone's name\n***" 
+            continue
+        fi
+        echo -e "${BLUE}DIVIDE jar.out for [$phone]$ENDC\n"
+        $MERGE_DIVIDE_TOOLS "-d" "$phone"
+    done
+    IFS="$OLD_IFS"
+}
+
+function usage {
+    echo "**************************** USAGE ****************************"
+    echo -e "CASE 1:"
+    echo -e "\t --exec --phones {[phone1:phone2:...:phoneN] or [all]} --cmdstr [\"cmdstring\"]"
+    echo -e "CASE 2:"
+    echo -e "\t --patch --from [phone] --to {[phone1:phone2:...:phoneN] or [all]} --head [length]"
+    echo -e "CASE 3:"
+    echo -e "\t --patch --from [phone] --to {[phone1:phone2:...:phoneN] or [all]} --commits [pre_commit] [post_commit]"
+    echo -e "CASE 4:"
+    echo -e "\t --merge-jar-out --phones {[phone1:phone2:...:phoneN] or [all]}"
+    echo -e "CASE 5:"
+    echo -e "\t --divide-jar-out --phones {[phone1:phone2:...:phoneN] or [all]}"  
+
+    exit 1
+}
+
+if [ -z "$PORT_ROOT" ];then
+    echo -e "$ERROR: didn't config env"
     exit 1 
 fi
 
-if [ "$1" = "-m" ];then
-    merge_divide_jar_out "-m" $2
-elif [ "$1" = "-d" ];then
-    merge_divide_jar_out "-d" $2
-elif [ "$1" = "-h" ];then
-    length=$2
-    pre=`git log --oneline HEAD~$length -1 | cut -d' ' -f1`
-    post=`git log --oneline HEAD -1 | cut -d' ' -f1`
-    patch_commits $pre $post
-elif [ "$1" = "-c" ];then
-    pre=$2
-    post=$3
-    patch_commits $pre $post
+if [ "$1" = "--exec" ];then 
+    if [ "$2" = "--phones" ];then
+        phones="$3"
+    else 
+        usage
+    fi
+    if [ "$4" = "--cmdstr" ];then
+        cmdstr="$5"
+    else
+        usage
+    fi
+
+    execute_for_phones "$phones" "$cmdstr"
+elif [ "$1" = "--patch" ];then
+    if [ "$2" = "--from" ];then
+        from="$3"
+    else 
+        usage
+    fi
+
+    if [ "$4" = "--to" ];then
+        to="$5"
+        if [ "$to" = "all" ];then
+            to="$PHONES"
+        fi
+    else
+        usage
+    fi
+
+    cd "$PORT_ROOT/$from" 2>/dev/null 1>/dev/null
+    if [ $? -ne 0 ]; then
+        echo -e "***\n$ERROR:[$from] is wrong phone's name\n***" 
+        exit 1
+    fi    
+
+    if [ "$6" = "--head" ];then
+        length="$7"
+        pre=`git log --oneline HEAD~$length -1 | cut -d' ' -f1`
+        post=`git log --oneline HEAD -1 | cut -d' ' -f1`
+    elif [ "$6" = "--commits" ];then
+        pre="$7"
+        post="$8"
+    else
+        usage
+    fi
+
+    if [ -z "$pre" -o -z "$post" ];then
+        usage
+    fi
+
+    patch_commits "$from" "$to" "$pre" "$post"
+elif [ "$1" = "--merge-jar-out" ];then
+    if [ "$2" = "--phones" ];then
+        phones="$3"
+    else
+        usage
+    fi
+    merge_jar_out_for_phones "$phones"
+elif [ "$1" = "--divide-jar-out" ];then
+    if [ "$2" = "--phones" ];then
+        phones="$3"
+    else
+        usage
+    fi
+    divide_jar_out_for_phones "$phones"
 else
-    echo "usage:"
-    echo -e "\t -m phone"
-    echo -e "\t\t merge phone's jar out"
-    echo -e "\t -d phone"
-    echo -e "\t\t divide phone's jar out"
-    echo -e "\t -c commit_pre commit_post"
-    echo -e "\t\t patch from commit_pre(without change of commit_pre) to commit_post to phones"
-    echo -e "\t -h length"
-    echo -e "\t\t patch first length commits to phones"
+    usage
 fi
+

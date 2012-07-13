@@ -3,8 +3,12 @@
 #{JAR_DIVIDE}:i9100:framework.jar.out|framework2.jar.out
 #{JAR_DIVIDE}:sensation:framework.jar.out|widget.jar.out
 #{JAR_DIVIDE}:razr:framework.jar.out|framework-ext.jar.out
-
-PHONES=honor:lt18i:p1:i9100:gnote:mx:sensation:onex:ones:razr
+#{JAR_DIVIDE}:vivo:framework.jar.out|framework2.jar.out
+#{JAR_DIVIDE}:i9300:framework.jar.out|framework2.jar.out
+#{JAR_DIVIDE}:gnote:framework.jar.out|framework2.jar.out
+#{JAR_DIVIDE}:onex:framework.jar.out|framework2.jar.out
+#{JAR_DIVIDE}:ones:framework.jar.out|framework2.jar.out
+#{JAR_DIVIDE}:x515m:framework.jar.out|framework2.jar.out
 
 ANDROID_PATH=$PORT_ROOT/android
 PATCH_SH=$PORT_ROOT/tools/merge_divide_jar_out.sh
@@ -62,9 +66,14 @@ function divide_jar {
     cd "$OLD_PWD"
 }
 
-if [ "/android" =  "$ANDROID_PATH" ]; then
-    echo "ERROR: didn't config env"
+if [ -z "$PORT_ROOT" ];then
+    echo -e "ERROR: didn't config env"
     exit 1 
+fi
+
+if [ ! -d "$PORT_ROOT/$2" -o -z "$2" ];then
+    echo -e "ERROR: $2 is wrong phone's name"
+    exit 1
 fi
 
 if [ $1 = "-m" ];then
