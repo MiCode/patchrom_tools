@@ -114,7 +114,7 @@ function patch_for_one_phone {
     if [ $result = "success" ];then
         git add .  2>/dev/null 1>/dev/null
         git commit -m "$msg" 2>/dev/null 1>/dev/null
-        #repo upload .  2>/dev/null 1>/dev/null
+        repo upload .  2>/dev/null 1>/dev/null
     else
         git clean -df 2>/dev/null 1>/dev/null
         git checkout . 2>/dev/null 1>/dev/null
