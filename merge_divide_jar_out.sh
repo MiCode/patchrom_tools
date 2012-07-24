@@ -9,6 +9,7 @@
 #{JAR_DIVIDE}:onex:framework.jar.out|framework2.jar.out
 #{JAR_DIVIDE}:ones:framework.jar.out|framework2.jar.out
 #{JAR_DIVIDE}:x515m:framework.jar.out|framework2.jar.out
+#{JAR_DIVIDE}:saga:framework.jar.out|framework2.jar.out
 
 ANDROID_PATH=$PORT_ROOT/android
 PATCH_SH=$PORT_ROOT/tools/merge_divide_jar_out.sh
