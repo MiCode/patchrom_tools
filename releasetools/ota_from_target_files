@@ -303,6 +303,17 @@ def CopySystemFiles(input_zip, output_zip=None,
   symlinks.sort()
   return (symlinks, retouch_files)
 
+def CopyDataFiles(input_zip, output_zip=None):
+  """Copies files underneath data/ in the input zip to the output zip."""
+
+  for info in input_zip.infolist():
+    if info.filename.startswith("DATA/"):
+      basefilename = info.filename[5:]
+      info2 = copy.copy(info)
+      info2.filename = "data/" + basefilename
+      if output_zip is not None:
+         data = input_zip.read(info.filename)
+         output_zip.writestr(info2, data)
 
 def SignOutput(temp_zip_name, output_zip_name):
   key_passwords = common.GetKeyPasswords([OPTIONS.package_key])
@@ -410,6 +421,8 @@ def WriteFullOTAPackage(input_zip, output_zip):
   # else:
   #   script.UndoRetouchBinaries(retouch_files)
 
+  CopyDataFiles(input_zip, output_zip)
+
   boot_img = common.GetBootableImage("boot.img", "boot.img",
                                      OPTIONS.input_tmp, "BOOT")
   # recovery_img = common.GetBootableImage("recovery.img", "recovery.img",
@@ -435,6 +448,9 @@ def WriteFullOTAPackage(input_zip, output_zip):
 
   if OPTIONS.extra_script is not None:
     script.AppendExtra(OPTIONS.extra_script)
+
+  script.Mount("/data")
+  script.UnpackPackageDir("data", "/data")
 
   script.UnmountAll()
   script.AddToZip(input_zip, output_zip)
@@ -463,6 +479,11 @@ def LoadSystemFiles(z):
       if info.filename.startswith("SYSTEM/lib/") and IsRegular(info):
         retouch_files.append(("/system/" + basefilename,
                               out[fn].sha1))
+    elif info.filename.startswith("DATA/") and not IsSymlink(info):
+      basefilename = info.filename[5:]
+      fn = "data/" + basefilename
+      data = z.read(info.filename)
+      out[fn] = common.File(fn, data)
   return (out, retouch_files)
 
 
@@ -548,6 +569,7 @@ def WriteIncrementalOTAPackage(target_zip, source_zip, output_zip):
   metadata["post-build"] = target_fp
 
   script.Mount("/system")
+  script.Mount("/data")
   script.AssertSomeFingerprint(source_fp, target_fp)
 
   source_boot = common.GetBootableImage(
@@ -698,6 +720,7 @@ def WriteIncrementalOTAPackage(target_zip, source_zip, output_zip):
   if verbatim_targets:
     script.Print("Unpacking new files...")
     script.UnpackPackageDir("system", "/system")
+    script.UnpackPackageDir("data", "/data")
 
   if updating_recovery:
     script.Print("Unpacking new recovery...")

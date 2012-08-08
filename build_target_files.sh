@@ -36,6 +36,16 @@ function copy_system_dir {
     cp -rf $ZIP_DIR/system/* $TARGET_FILES_DIR/SYSTEM
 }
 
+function copy_data_dir {
+    #The data has copyed in copy_target_files_template function,
+    #here, just to decide whether delete them.
+    if [ $INCLUDE_DATA_PARTITION = "true" ];then
+       echo "Copy data dir"
+    else
+       rm -rf $TARGET_FILES_DIR/DATA
+    fi
+}
+
 function recover_link {
     cp -f $METADATA_DIR/linkinfo.txt $TARGET_FILES_DIR/SYSTEM
     python $TOOL_DIR/releasetools/recoverylink.py $TARGET_FILES_DIR
@@ -75,20 +85,26 @@ function build_ota_package {
     $OTA_FROM_TARGET_FILES -n -k $PORT_ROOT/build/security/testkey $TARGET_FILES_ZIP $OUT_DIR/$OUT_ZIP_FILE
 }
 
-if [ $# -eq 2 ];then
+
+if [ $# -eq 3 ];then
     NO_SIGN=true
+    OUT_ZIP_FILE=$3
+    INCLUDE_DATA_PARTITION=$1
+elif [ $# -eq 2 ];then
     OUT_ZIP_FILE=$2
+    INCLUDE_DATA_PARTITION=$1
 elif [ $# -eq 1 ];then
-    OUT_ZIP_FILE=$1
+    INCLUDE_DATA_PARTITION=$1
 fi
 
 copy_target_files_template
 copy_bootimage
 copy_system_dir
+copy_data_dir
 process_metadata
 zip_target_files
 if [ -n "$OUT_ZIP_FILE" ];then
-	if [ "$NO_SIGN" == "false" ];then
+    if [ "$NO_SIGN" == "false" ];then
         sign_target_files
     fi
     build_ota_package
