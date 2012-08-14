@@ -17,6 +17,11 @@ function copy_target_files_template {
     rm -rf $TARGET_FILES_DIR
     mkdir -p $TARGET_FILES_DIR
     cp -r $TARGET_FILES_TEMPLATE_DIR/* $TARGET_FILES_DIR
+    if [ -e $METADATA_DIR/updater ] 
+    then
+        echo "Use custom updater bin file"
+    cp -r $METADATA_DIR/updater $TARGET_FILES_DIR/OTA/bin
+    fi
 }
 
 function copy_bootimage {
