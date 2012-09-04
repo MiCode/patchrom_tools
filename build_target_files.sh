@@ -42,13 +42,15 @@ function copy_system_dir {
 }
 
 function copy_data_dir {
-    #The data has copyed in copy_target_files_template function,
+    #The thirdpart apps have copyed in copy_target_files_template function,
     #here, just to decide whether delete them.
-    if [ $INCLUDE_DATA_PARTITION = "true" ];then
-       echo "Copy data dir"
+    if [ $INCLUDE_THIRDPART_APP = "true" ];then
+       echo "Copy thirdpart apps"
     else
-       rm -rf $TARGET_FILES_DIR/DATA
+       rm -rf $TARGET_FILES_DIR/DATA/media/preset_apps
     fi
+    echo "Copy miui preinstall apps"
+    cp -rf $ZIP_DIR/data/* $TARGET_FILES_DIR/DATA
 }
 
 function recover_link {
@@ -94,12 +96,12 @@ function build_ota_package {
 if [ $# -eq 3 ];then
     NO_SIGN=true
     OUT_ZIP_FILE=$3
-    INCLUDE_DATA_PARTITION=$1
+    INCLUDE_THIRDPART_APP=$1
 elif [ $# -eq 2 ];then
     OUT_ZIP_FILE=$2
-    INCLUDE_DATA_PARTITION=$1
+    INCLUDE_THIRDPART_APP=$1
 elif [ $# -eq 1 ];then
-    INCLUDE_DATA_PARTITION=$1
+    INCLUDE_THIRDPART_APP=$1
 fi
 
 copy_target_files_template

@@ -307,7 +307,7 @@ def CopyDataFiles(input_zip, output_zip=None):
   """Copies files underneath data/ in the input zip to the output zip."""
 
   for info in input_zip.infolist():
-    if info.filename.startswith("DATA/"):
+    if info.filename.startswith("DATA/media/preinstall_apps"):
       basefilename = info.filename[5:]
       info2 = copy.copy(info)
       info2.filename = "data/" + basefilename
@@ -451,6 +451,8 @@ def WriteFullOTAPackage(input_zip, output_zip):
 
   script.Mount("/data")
   script.UnpackPackageDir("data", "/data")
+  script.SetPermissionsRecursive("/data/media/preinstall_apps", 1000, 1000, 0755, 0644)
+  common.ZipWriteStr(output_zip, "data/media/preinstall_apps/reinstall_apps", "reinstall_apps")
 
   script.UnmountAll()
   script.AddToZip(input_zip, output_zip)
@@ -479,7 +481,7 @@ def LoadSystemFiles(z):
       if info.filename.startswith("SYSTEM/lib/") and IsRegular(info):
         retouch_files.append(("/system/" + basefilename,
                               out[fn].sha1))
-    elif info.filename.startswith("DATA/") and not IsSymlink(info):
+    elif info.filename.startswith("DATA/media/preinstall_apps") and not IsSymlink(info):
       basefilename = info.filename[5:]
       fn = "data/" + basefilename
       data = z.read(info.filename)
@@ -602,6 +604,8 @@ def WriteIncrementalOTAPackage(target_zip, source_zip, output_zip):
   so_far = 0
 
   for fn, tf, sf, size, patch_sha in patch_list:
+    if fn.startswith("data/"):
+      continue
     script.PatchCheck("/"+fn, tf.sha1, sf.sha1)
     so_far += sf.size
     script.SetProgress(so_far / total_verify_size)
@@ -727,6 +731,7 @@ def WriteIncrementalOTAPackage(target_zip, source_zip, output_zip):
     script.UnpackPackageDir("recovery", "/system")
 
   script.Print("Symlinks and permissions...")
+  script.SetPermissionsRecursive("/data/media/preinstall_apps", 1000, 1000, 0755, 0644)
 
   # Create all the symlinks that don't already exist, or point to
   # somewhere different than what we want.  Delete each symlink before
