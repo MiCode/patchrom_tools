@@ -17,11 +17,6 @@ function copy_target_files_template {
     rm -rf $TARGET_FILES_DIR
     mkdir -p $TARGET_FILES_DIR
     cp -r $TARGET_FILES_TEMPLATE_DIR/* $TARGET_FILES_DIR
-    if [ -e $METADATA_DIR/updater ] 
-    then
-        echo "Use custom updater bin file"
-    cp -r $METADATA_DIR/updater $TARGET_FILES_DIR/OTA/bin
-    fi
 }
 
 function copy_bootimage {
@@ -110,6 +105,12 @@ copy_bootimage
 copy_system_dir
 copy_data_dir
 process_metadata
+if [ -f "customize_target_files.sh" ]; then
+    ./customize_target_files.sh
+    if [ $? -ne 0 ];then
+       exit 1
+    fi
+fi
 zip_target_files
 if [ -n "$OUT_ZIP_FILE" ];then
     if [ "$NO_SIGN" == "false" ];then
