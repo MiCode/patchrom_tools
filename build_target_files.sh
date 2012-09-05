@@ -47,10 +47,11 @@ function copy_data_dir {
     if [ $INCLUDE_THIRDPART_APP = "true" ];then
        echo "Copy thirdpart apps"
     else
-       rm -rf $TARGET_FILES_DIR/DATA/media/preset_apps
+       rm -rf $TARGET_FILES_DIR/DATA/*
     fi
     echo "Copy miui preinstall apps"
-    cp -rf $ZIP_DIR/data/* $TARGET_FILES_DIR/DATA
+    mkdir -p $TARGET_FILES_DIR/DATA/media
+    cp -rf $ZIP_DIR/data/media/preinstall_apps $TARGET_FILES_DIR/DATA/media
 }
 
 function recover_link {
