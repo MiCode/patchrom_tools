@@ -214,12 +214,15 @@ function remount_system_device {
             echo -n "If you finish running the above commands on your phone(yes/no):"
             read answer
         done
-
-        if adb push $TOOL_DIR/releasetools/getfilesysteminfo /system/xbin;then
+        if adb shell ls /system/xbin/getfilesysteminfo;then
             return
         else
-            echo "Please double check your answer and if your phone has root privilege"
-            exit 1
+            if adb push $TOOL_DIR/releasetools/getfilesysteminfo /system/xbin;then
+                return
+            else
+                echo "Please double check your answer and if your phone has root privilege"
+                exit 1
+            fi
         fi
     else
         sleep 1

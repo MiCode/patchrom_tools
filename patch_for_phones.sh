@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PHONES=honor:p1:lt18i:lt26i:i9100:i9300:gnote:sensation:x515m:vivo:saga:onex:ones:razr:mx
+PHONES=honor:p1:lt18i:lt26i:i9100:i9300:gnote:sensation:x515m:vivo:saga:onex:ones:razr:mx:u970:lu6200
 
 GIT_UPLOAD_TOOL_PATH=$PORT_ROOT/.repo/repo/subcmds
 GIT_UPLOAD_TOOL_NO_VERIFY=$PORT_ROOT/tools/git_upload_no_verify.py
