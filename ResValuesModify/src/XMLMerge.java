@@ -52,9 +52,9 @@ public class XMLMerge {
             DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
             DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
             Document doc = dBuilder.parse(file);
-
             Element root = adjustMergeRoot(doc);
             if (null == root) {
+                System.out.println("DON'T MERGE: " + file.getCanonicalPath());
                 return;
             }
 
@@ -91,22 +91,27 @@ public class XMLMerge {
         NodeList nList = doc.getElementsByTagName("resources");
         Element root = (Element) nList.item(0);
         root.removeAttribute("xmlns:xliff");
+
         nList = root.getElementsByTagName("xliff:g");
+        if (nList.getLength() > 0){
+            Node papa = nList.item(0).getParentNode().getParentNode();
+            ArrayList<String> vals = new ArrayList<String>();
+            while (root.getElementsByTagName("xliff:g").getLength() != 0) {
+                vals.add(nList.item(0).getTextContent());
+                nList.item(0).getParentNode().getParentNode().removeChild(nList.item(0).getParentNode());
+            }
 
-        ArrayList<String> vals = new ArrayList<String>();
-        Node papa = nList.item(0).getParentNode().getParentNode();
-
-        while (root.getElementsByTagName("xliff:g").getLength() != 0) {
-            vals.add(nList.item(0).getTextContent());
-            nList.item(0).getParentNode().getParentNode().removeChild(nList.item(0).getParentNode());
+            for (int i = 0; i < vals.size(); i++) {
+                Element e = doc.createElement("item");
+                e.appendChild(doc.createTextNode(vals.get(i)));
+                papa.appendChild(e);
+            }
+            return (Element)papa;
         }
-
-        for (int i = 0; i < vals.size(); i++) {
-            Element e = doc.createElement("item");
-            e.appendChild(doc.createTextNode(vals.get(i)));
-            papa.appendChild(e);
-        }
-        return root;
+        //return root
+        //TODO
+        //frameworks/miui/overlay/frameworks/base/core/res/res/values/arrays.xml should not be merged
+        return null;
     }
 
     private Element adjustStyleRoot(Document doc) {
