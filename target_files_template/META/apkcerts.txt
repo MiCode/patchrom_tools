@@ -408,3 +408,5 @@ name="XiaomiServiceFramework.apk" certificate="build/target/product/security/pla
 name="MiuiVideoPlayer.apk" certificate="build/target/product/security/platform.x509.pem" private_key="build/target/product/security/platform.pk8"
 name="VoiceAssist.apk" certificate="build/target/product/security/platform.x509.pem" private_key="build/target/product/security/platform.pk8"
 name="GameCenter.apk" certificate="build/target/product/security/platform.x509.pem" private_key="build/target/product/security/platform.pk8"
+name="InputMethod.apk" certificate="PRESIGNED" private_key=""
+
