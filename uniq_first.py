@@ -22,8 +22,9 @@ def filter_miui(miui_file, filter_file, make_dir):
 
 	with open(filter_file, 'w') as ff:
 		for line in lines:
-			if (line.split()[0].split('"')[1] in miui_apps):
-				ff.write(line)
+			if line.split():
+				if (line.split()[0].split('"')[1] in miui_apps):
+					ff.write(line)
 
 def main(args):
 	if len(args) != 3:
