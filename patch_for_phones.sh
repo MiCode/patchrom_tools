@@ -1,6 +1,11 @@
 #!/bin/bash
 
 PHONES=honor:p1:d1:lt18i:lt26i:i9100:i9300:gnote:sensation:x515m:vivo:saga:onex:ones:razr:me865:mx:u970:lu6200
+HTC=sensation:x515m:vivo:saga:onex:ones
+HUAWEI=honor:p1:d1
+SONY=lt18i:lt26i
+MOTO=razr:me865
+SAMSUNG=i9100:i9300:gnote
 
 GIT_UPLOAD_TOOL_PATH=$PORT_ROOT/.repo/repo/subcmds
 GIT_UPLOAD_TOOL_NO_VERIFY=$PORT_ROOT/tools/git_upload_no_verify.py
@@ -150,7 +155,7 @@ function patch_one_commit {
 
     cd "$PORT_ROOT/$from"
     mkdir $PATCH_SWAP_PATH -p
-    git.patch $tail..$head > $PATCH_SWAP_PATH/$from-patch.$head
+    git.patch $tail..$head | sed "s/framework2.jar.out/framework.jar.out/g" | sed "s/framework-ext.jar.out/framework.jar.out/g" > $PATCH_SWAP_PATH/$from-patch.$head
     msg=`git log $head --oneline -1 -1 | sed "s/$head //g"`
     echo ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     echo -e "${BLUE}[ID] $head [MSG] $msg$ENDC"
@@ -239,7 +244,7 @@ function merge_jar_out_for_phones {
     if [ "$phones" = "all" ];then
         phones=$PHONES
     fi
-
+ 
     OLD_IFS="$IFS"
     IFS=$':'
     for phone in $phones
@@ -322,6 +327,21 @@ elif [ "$1" = "--patch" ];then
         to="$5"
         if [ "$to" = "all" ];then
             to="$PHONES"
+        fi
+        if [ "$to" = "htc" ];then
+            to="$HTC"
+        fi
+        if [ "$to" = "huawei" ];then
+            to="$HUAWEI"
+        fi
+        if [ "$to" = "samsung" ];then
+            to="$SAMSUMG"
+        fi
+        if [ "$to" = "sony" ];then
+            to="$SONY"
+        fi
+        if [ "$to" = "moto" ];then
+            to="$MOTO"
         fi
     else
         usage
