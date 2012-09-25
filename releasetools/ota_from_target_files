@@ -574,12 +574,13 @@ def WriteIncrementalOTAPackage(target_zip, source_zip, output_zip):
   script.Mount("/data")
   script.AssertSomeFingerprint(source_fp, target_fp)
 
-  # source_boot = common.GetBootableImage(
-  #    "/tmp/boot.img", "boot.img", OPTIONS.source_tmp, "BOOT")
-  source_boot = None
+  source_boot = common.GetBootableImage(
+      "/tmp/boot.img", "boot.img", OPTIONS.source_tmp, "BOOT")
   target_boot = common.GetBootableImage(
       "/tmp/boot.img", "boot.img", OPTIONS.target_tmp, "BOOT")
-  updating_boot = (source_boot != None and target_boot != None and source_boot.data != target_boot.data)
+  # updating_boot = (source_boot != None and target_boot != None and source_boot.data != target_boot.data)
+  updating_boot = False
+  need_install_boot = (source_boot != None and target_boot != None and source_boot.data != target_boot.data)
 
   source_recovery = common.GetBootableImage(
       "/tmp/recovery.img", "recovery.img", OPTIONS.source_tmp, "RECOVERY")
@@ -679,6 +680,16 @@ def WriteIncrementalOTAPackage(target_zip, source_zip, output_zip):
     print "boot image changed; including."
   else:
     print "boot image unchanged; skipping."
+
+  if need_install_boot:
+	  boot_img = common.GetBootableImage("boot.img", "boot.img",
+										 OPTIONS.input_tmp, "BOOT")
+	  script.Print("Update Boot image...")
+	  if boot_img:
+		common.CheckSize(boot_img.data, "boot.img", OPTIONS.info_dict)
+		common.ZipWriteStr(output_zip, "boot.img", boot_img.data)
+	  if boot_img and not device_specific.WriteRawImage("/boot", "boot.img"):
+		script.WriteRawImage("/boot", "boot.img")
 
   if updating_recovery:
     # Is it better to generate recovery as a patch from the current
