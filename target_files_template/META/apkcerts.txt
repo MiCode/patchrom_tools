@@ -410,3 +410,4 @@ name="VoiceAssist.apk" certificate="build/target/product/security/platform.x509.
 name="GameCenter.apk" certificate="build/target/product/security/platform.x509.pem" private_key="build/target/product/security/platform.pk8"
 name="InputMethod.apk" certificate="PRESIGNED" private_key=""
 name="AlipayMsp.apk" certificate="PRESIGNED" private_key=""
+name="MiuiVideo.apk" certificate="build/target/product/security/platform.x509.pem" private_key="build/target/product/security/platform.pk8"
