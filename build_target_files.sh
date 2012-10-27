@@ -45,8 +45,8 @@ function copy_data_dir {
        rm -rf $TARGET_FILES_DIR/DATA/*
     fi
     echo "Copy miui preinstall apps"
-    mkdir -p $TARGET_FILES_DIR/DATA/media
-    cp -rf $ZIP_DIR/data/media/preinstall_apps $TARGET_FILES_DIR/DATA/media
+    mkdir -p $TARGET_FILES_DIR/DATA/
+    cp -rf $ZIP_DIR/data/media/preinstall_apps $TARGET_FILES_DIR/DATA/
 }
 
 function recover_link {
