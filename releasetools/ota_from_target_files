@@ -169,6 +169,7 @@ class Item:
       if not line: continue
       rows = line.split()
       length = len(rows)
+      if length<4: continue
       name = ' '.join(rows[0:length-3])
       uid, gid, mode = rows[length-3:]
       i = cls.ITEMS.get(name, None)
