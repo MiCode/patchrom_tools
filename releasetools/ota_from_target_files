@@ -453,6 +453,7 @@ def WriteFullOTAPackage(input_zip, output_zip):
   script.UnpackPackageDir("data", "/data")
   script.SetPermissionsRecursive("/data/preinstall_apps", 1000, 1000, 0755, 0644)
   common.ZipWriteStr(output_zip, "data/preinstall_apps/reinstall_apps", "reinstall_apps")
+  script.AppendExtra('delete_recursive("/data/dalvik-cache");')
 
   script.UnmountAll()
   script.AddToZip(input_zip, output_zip)
@@ -597,6 +598,7 @@ def WriteIncrementalOTAPackage(target_zip, source_zip, output_zip):
   AppendAssertions(script, target_zip)
   device_specific.IncrementalOTA_Assertions()
 
+  script.AppendExtra('delete_recursive("/data/dalvik-cache");')
   script.Print("Verifying current system...")
 
   script.ShowProgress(0.1, 0)
