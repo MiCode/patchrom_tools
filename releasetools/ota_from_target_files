@@ -444,7 +444,6 @@ def WriteFullOTAPackage(input_zip, output_zip):
     script.WriteRawImage("/boot", "boot.img")
 
   script.ShowProgress(0.1, 0)
-  device_specific.FullOTA_InstallEnd()
 
   if OPTIONS.extra_script is not None:
     script.AppendExtra(OPTIONS.extra_script)
@@ -456,9 +455,9 @@ def WriteFullOTAPackage(input_zip, output_zip):
   script.AppendExtra('delete_recursive("/data/dalvik-cache");')
 
   script.UnmountAll()
+  device_specific.FullOTA_InstallEnd()
   script.AddToZip(input_zip, output_zip)
   WriteMetadata(metadata, output_zip)
-
 
 def WriteMetadata(metadata, output_zip):
   common.ZipWriteStr(output_zip, "META-INF/com/android/metadata",
@@ -780,10 +779,12 @@ def WriteIncrementalOTAPackage(target_zip, source_zip, output_zip):
   for item in deferred_patch_list:
     fn, tf, sf, size, _ = item
     script.ApplyPatch("/"+fn, "-", tf.size, tf.sha1, sf.sha1, "patch/"+fn+".p")
-  
-  device_specific.IncrementalOTA_InstallEnd()
 
   script.SetPermissions("/system/build.prop", 0, 0, 0644)
+
+  script.UnmountAll()
+
+  device_specific.IncrementalOTA_InstallEnd()
 
   script.AddToZip(target_zip, output_zip)
   WriteMetadata(metadata, output_zip)
