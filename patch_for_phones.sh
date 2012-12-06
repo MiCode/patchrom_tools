@@ -1,11 +1,21 @@
 #!/bin/bash
 
-PHONES=honor:p1:d1:lt18i:lt26i:i9100:i9300:gnote:sensation:x515m:vivo:saga:onex:ones:razr:me865:mx:u970:lu6200
-HTC=sensation:x515m:vivo:saga:onex:ones
-HUAWEI=honor:p1:d1
-SONY=lt18i:lt26i
-MOTO=razr:me865
-SAMSUNG=i9100:i9300:gnote
+if [ -z "$PORT_ROOT" ]
+then
+    echo -e "\033[91m Please setup environmant firstly \033[1;m"    #RED COLOR
+    echo
+    exit
+fi
+
+ALL_PHONES=$(sed -n '2p' $PORT_ROOT/Makefile  | sed 's/PRODUCTS := //')
+ALL_PHONES="$ALL_PHONES $EXTRA_PHONES"  #set environment variable EXTRA_PHONES to other phones that aren't in Makefile
+
+FACTORYS=(HTC HUAWEI SONY MOTO SAMSUNG)
+HTC=(sensation x515m vivo saga onex ones)
+HUAWEI=(honor p1 d1)
+SONY=(lt18i lt26i)
+MOTO=(razr me865)
+SAMSUNG=(i9100 i9300 gnote)
 
 GIT_UPLOAD_TOOL_PATH=$PORT_ROOT/.repo/repo/subcmds
 GIT_UPLOAD_TOOL_NO_VERIFY=$PORT_ROOT/tools/git_upload_no_verify.py
@@ -23,58 +33,71 @@ ENDC='\033[1;m'
 
 ERROR="${RED}ERROR$ENDC"
 
-function check_commits_parameter {
-    phone="$1"
-    pre="$2"
-    post="$3"
+TOOL_NAME=${0##*/}
+TARGETS=
+COMMIT_ARRAY=
+TMP_DIR=
+STASH=
+STASH_MSG="STASH CHANGE FOR AUTO_PATCHING"
+BRANCH="for-upload"
+RESULT=
+COMMIT_MSG=
+UPLOAD=
 
-    cd "$PORT_ROOT/$phone" 2>/dev/null 1>/dev/null 
-    if [ $? -ne 0 ]; then
-        echo -e "***\n$ERROR:[$phone] is wrong phone's name\n***" 
-        return 1
-    fi
+POS='\033['
+ENDP='H'
+LNUM=
+CNUM=20
 
-    all_commit=`git log --oneline | cut -d' ' -f1`
-    all_commit=`echo $all_commit | sed -e "s/\s\+/:/g"`
-    if [ "$pre" = "$post" ]; then
-        echo -e "$ERROR: commit NO. is same"
-        return 1
-    fi
 
-    echo $all_commit | grep -q "$pre"
-    if [ $? -ne 0 ]; then
-        echo -e "$ERROR: can't find commit $pre"
-        return 1
-    fi
-    echo $all_commit | grep -q "$post" 
-    if [ $? -ne 0 ]; then 
-        echo -e "$ERROR: can't find commit $post"
-        return 1
-    fi
-
-    OLD_IFS="$IFS"
-    IFS=$':'
-    for commit in $all_commit;do
-        echo $commit | grep -q $pre && echo -e "$ERROR: $pre is ahead than $post" && IFS="$OLD_IFS" && return 1 
-        echo $commit | grep -q $post && break
-    done
-    IFS="$OLD_IFS"
-    return 0
+get_line_num()
+{
+    local pos
+    echo -ne '\e[6n'; read -sdR pos
+    pos=${pos#*[}
+    LNUM=${pos%%;*}
+    #col=${pos##*;}
 }
 
-function get_commit_list {
-    phone="$1"
-    pre="$2"
-    post="$3"
+function check_commits_parameter {
+    local phone="$1"
+    local pre="$2"
+    local post="$3"
+    local all_commit
+
+    [ ${#pre} -ne 7 ]  && error_exit "length of \"$pre\" is not 7 chars"
+    [ ${#post} -ne 7 ] && error_exit "length of \"$post\" is not 7 chars"
+
+    all_commit=$(git log --oneline | cut -d' ' -f1)
+    [ "$pre" = "$post" ] && error_exit "commit NO. is same"
+
+    echo $all_commit | grep -q "$pre"  || error_exit "can't find commit $pre"
+    echo $all_commit | grep -q "$post" || error_exit "can't find commit $post"
+
+    for commit in $all_commit
+    do
+        echo $commit | grep -q $pre && error_exit "$pre is ahead than $post"
+        echo $commit | grep -q $post && break
+    done
+}
+
+function get_commit_array {
+    local phone="$1"
+    local pre="$2"
+    local post="$3"
+    local array
 
     cd "$PORT_ROOT/$phone"
-    all_commit=`git log --oneline | cut -d' ' -f1`
-    all_commit=`echo $all_commit | sed -e "s/\s\+/:/g"`
+    local all_commit=$(git log --oneline | cut -d' ' -f1)
 
-    commit_list=`echo $all_commit | sed -e "s/$pre.*$//g" | sed -e "s/^.*$post//g"`
-    commit_list="$post$commit_list$pre:"
-    commit_list=`echo $commit_list | tac -s ":"`
-    echo "$commit_list"
+    array=$(echo $all_commit | sed -e "s/$pre.*$//g" | sed -e "s/^.*$post//g")
+    eval array="($post $array)"
+
+    local len=${#array[*]}
+    for ((i = 0; i < $len; i++))
+    do
+        COMMIT_ARRAY[$i]=${array[(($len-$i-1))]}
+    done
 }
 
 function replace_git_upload_tool {
@@ -86,29 +109,71 @@ function recovery_git_upload_tool {
     git checkout . 2>/dev/null 1>/dev/null
     cd - 2>/dev/null 1>/dev/null
 }
-    
+
+function backup_untracked_files {
+    local l1=$(git status | grep -n "# Untracked files:" | cut -d':' -f1)
+    ((l1=l1+3))
+    local l2=$(git status | wc -l)
+    local files=$(git status | sed -n "${l1},${l2}p" | grep -E "^#\s+" |sed "s/#//g")
+    for f in $files
+    do
+        mkdir -p $TMP_DIR/$(dirname $f)/
+        mv $f $TMP_DIR/$(dirname $f)/
+    done
+}
+
+function stash_changes {
+    STASH="[stashed]"
+    git stash save "$STASH_MSG" 1>/dev/null 2>/dev/null
+}
+
+function backup {
+    grep -q "tmp.*" .git/info/exclude || echo "tmp.*" >> .git/info/exclude
+    TMP_DIR=$(mktemp -d tmp.XXX)
+    git status | grep -q "# Untracked files:" && backup_untracked_files
+
+    STASH=
+    git status | grep -q -E "(# Changes to be committed:|# Changes not staged for commit:)" && stash_changes
+}
+
+function restore {
+    cp -r $TMP_DIR/* . 2>/dev/null 1>/dev/null
+    cp -r $TMP_DIR/.[^.]* . 2>/dev/null 1>/dev/null   #cp hide files
+    rm -rf $TMP_DIR
+}
+
+function print_result {
+    get_line_num
+    echo -e "$phone ${POS}${LNUM};${CNUM}${ENDP} $result ${YELLOW}${STASH}${ENDC}"
+}
+
 function patch_for_one_phone {
-    from="$1"
-    phone="$2"
-    commit="$3"
-    msg="$4"
+    local from="$1"
+    local phone="$2"
+    local commit="$3"
+    local result="success"
 
-    echo -n "$phone"
+    cd "$PORT_ROOT/$phone"
 
-    cd "$PORT_ROOT/$phone" 2>/dev/null 1>/dev/null 
-    if [ $? -ne 0 ]; then
-        echo -e "${RED}\t\t NO SUCH PHONE$ENDC" 
-        return 1
+    backup
+    if ! git checkout "$BRANCH" 2>/dev/null 1>/dev/null
+    then
+        result="${RED}failed [no branch $BRANCH]$ENDC"
+        print_result "$phone" "$result"
+        restore
+        return
     fi
 
-    result="success"
-    git clean -df  2>/dev/null 1>/dev/null
-    git checkout . 2>/dev/null 1>/dev/null
-    git checkout for-upload 2>/dev/null 1>/dev/null
-    repo sync . 2>/dev/null 1>/dev/null
+    if ! repo sync . 2>/dev/null 1>/dev/null
+    then
+        result="${RED}failed [sync failed]$ENDC"
+        print_result "$phone" "$result"
+        restore
+        return
+    fi
 
     $MERGE_DIVIDE_TOOLS -m $phone
-    apply_log=`git.apply $PATCH_SWAP_PATH/$from-patch.$commit 2>&1`
+    apply_log=$(git.apply $PATCH_SWAP_PATH/$from-patch.$commit 2>&1)
     $MERGE_DIVIDE_TOOLS -d $phone
 
     echo $apply_log | grep -q "error: while searching for:" && result="${RED}failed$ENDC"
@@ -116,274 +181,262 @@ function patch_for_one_phone {
     echo $apply_log | grep -q "Rejected" && result="${RED}failed$ENDC"
     git status | grep -q "smali.rej" && result="${RED}failed$ENDC"
    
-    if [ $result = "success" ];then
+    if [ $result = "success" ]
+    then
         git add .  2>/dev/null 1>/dev/null
-        git commit -m "$msg" 2>/dev/null 1>/dev/null
-        repo upload .  2>/dev/null 1>/dev/null
+
+        IFS_OLD="$IFS"
+        IFS=
+        echo $MSG | git commit --file=- 2>/dev/null 1>/dev/null
+        IFS="$IFS_OLD"
+
+        [ $UPLOAD != "false" ] && repo upload .  2>/dev/null 1>/dev/null
     else
         git clean -df 2>/dev/null 1>/dev/null
         git checkout . 2>/dev/null 1>/dev/null
     fi
 
-    if [ $phone = "sensation" ];then
-        echo -e "\t $result"
-    else
-        echo -e "\t\t $result"
-    fi
+    restore
+    print_result "$phone" "$result"
 }
 
 function patch_for_phones {
-    from="$1"
-    to="$2"
-    commit="$3"
-    msg="$4"
+    local from="$1"
+    local to="$2"
+    local commit="$3"
 
-    OLD_IFS="$IFS"
-    IFS=$':'
     for phone in $to
     do
-        patch_for_one_phone "$from" "$phone" "$commit" "$msg"
+        patch_for_one_phone "$from" "$phone" "$commit"
     done
-    IFS="$OLD_IFS"
 }
 
 function patch_one_commit {
-    from="$1"
-    to="$2"
-    tail="$3"
-    head="$4"
+    local from="$1"
+    local to="$2"
+    local commit="$3"
 
     cd "$PORT_ROOT/$from"
     mkdir $PATCH_SWAP_PATH -p
-    git.patch $tail..$head | sed "s/framework2.jar.out/framework.jar.out/g" | sed "s/framework-ext.jar.out/framework.jar.out/g" > $PATCH_SWAP_PATH/$from-patch.$head
-    msg=`git log $head --oneline -1 -1 | sed "s/$head //g"`
+    git.patch ${commit}^..${commit} | sed "s/framework2.jar.out/framework.jar.out/g" | sed "s/framework-ext.jar.out/framework.jar.out/g" > ${PATCH_SWAP_PATH}/${from}-patch.${commit}
+    IFS_OLD="$IFS"
+    IFS=
+    MGS=
+    MSG=$(git log  -1 ${commit} | grep  "^\s" | grep -v "Signed-off-by:" | sed "s/\s\+//" | sed "/Change-Id:/d")
     echo ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    echo -e "${BLUE}[ID] $head [MSG] $msg$ENDC"
-    patch_for_phones "$from" "$to" "$head" "$msg"
+    echo -ne ""
+    echo -e "${BLUE}[ID]${ENDC}"
+    echo "    ${commit}"
+    echo -e "${BLUE}[MSG]${ENDC}"
+    echo "$MSG" | sed "s/^/    /"
+    echo ----------------------------------------------------------
+    IFS="$IFS_OLD"
+    #echo "patch_for_phones $from $to ${commit}"
+    patch_for_phones "$from" "$to" "${commit}"
     echo ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     echo -e "\n"
 }
 
 function patch_commits {
-    from="$1"
-    to="$2"
-    pre="$3"
-    post="$4"
+    local from="$1"
+    local to="$2"
+    local pre="$3"
+    local post="$4"
 
-    check_commits_parameter $from $pre $post || exit 1
+    check_commits_parameter $from $pre $post
+    get_commit_array $from $pre $post
 
-    commit_list=`get_commit_list $from $pre $post`
     echo
     echo ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    echo -e "THESE COMMITS FROM [${RED}$from$ENDC] NEED TO PATCH:"
+    echo -e " ${BLUE}${#COMMIT_ARRAY[*]}$ENDC COMMITS FROM [${RED}$from$ENDC] NEED TO PATCH:"
     echo -n "  "
-    echo -e "${YELLOW}|->"`echo $commit_list | sed "s/:/ /g" | sed "s/$pre//g"`"->|$ENDC"
+    echo -e "${YELLOW}|->${COMMIT_ARRAY[*]}->|$ENDC"
     echo ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    echo 
-    
-    while [ "$post" != "`echo $commit_list | cut -d':' -f1`" ]
+    echo
+
+    for ((i = 0; i < ${#COMMIT_ARRAY[*]}; i++))
     do
-        head=`echo $commit_list | cut -d':' -f2`
-        tail=`echo $commit_list | cut -d':' -f1`
-        commit_list="`echo $commit_list | sed \"s/$tail://g\"`"
+        local commit="${COMMIT_ARRAY[$i]}"
         replace_git_upload_tool
 
-        patch_one_commit $from $to $tail $head
+        patch_one_commit "$from" "$to" "$commit"
 
         recovery_git_upload_tool
     done
 }
 
 function execute {
-    OLD_IFS="$IFS"
-    IFS=$' \t\n'
-    cmdstr=$1
-    echo $cmdstr | grep ";" -q
-    if [ $? -eq 0 ];then
+    local cmdstr="$1"
+    local cmd
+    if echo $cmdstr | grep ";" -q
+    then
         for (( i = 1; ; i++ ))
-        {
-            cmd=`echo $cmdstr | cut -d';' -f$i`
+        do
+            cmd=$(echo $cmdstr | cut -d';' -f$i)
             [ -z "$cmd" ] && break
-            echo -e "$YELLOW++++RESULT OF [$cmd]++++$ENDC"
-            $cmd
+            echo -e "${YELLOW}++++OUTPUT OF [${GREEN}${cmd}${YELLOW}] @[${GREEN}$(pwd)${YELLOW}]++++$ENDC "
+            eval $cmd
             echo
-        }
+        done
     else
-        echo -e "$YELLOW++++RESULT OF [$cmdstr]++++$ENDC"
-        $cmdstr
+        echo -e "${YELLOW}++++OUTPUT OF [${GREEN}${cmdstr}${YELLOW}] @[${GREEN}$(pwd)${YELLOW}]++++$ENDC "
+        eval $cmdstr
     fi
-    IFS=$OLD_IFS
 }
 
 function execute_for_phones {
-    phones="$1"
-    if [ "$phones" = "all" ];then
-        phones=$PHONES
-    fi
-    cmdstr="$2"
-    
-    OLD_IFS="$IFS"
-    IFS=$':'
+    local phones="$1"
+    local cmdstr="$2"
     for phone in $phones
     do
-        echo -e "\n*****************************************************"
-        cd $PORT_ROOT/$phone 2>/dev/null 1>/dev/null
-        if [ $? -ne 0 ]; then
-            echo -e "***\n$ERROR:[$phone] is wrong phone's name\n***" 
-            continue
-        fi
+          echo ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         echo -e "${BLUE}EXECUTE [$cmdstr] for [$phone]$ENDC"
-        execute $cmdstr
+           echo ----------------------------------------------------------
+        cd $PORT_ROOT/$phone
+        execute "$cmdstr"
+        echo ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        echo
     done
-    IFS="$OLD_IFS"
 }
 
 function merge_jar_out_for_phones {
-    phones="$1"
-    
-    if [ "$phones" = "all" ];then
-        phones=$PHONES
-    fi
- 
-    OLD_IFS="$IFS"
-    IFS=$':'
+    local phones="$1"
+
     for phone in $phones
     do
-        cd "$PORT_ROOT/$phone" 2>/dev/null 1>/dev/null 
-        if [ $? -ne 0 ]; then
-            echo -e "***\n$ERROR:[$phone] is wrong phone's name\n***" 
-            continue
-        fi
+        cd "$PORT_ROOT/$phone"
         echo -e "${BLUE}MERGE jar.out for [$phone]$ENDC\n"
         $MERGE_DIVIDE_TOOLS "-m" "$phone"
     done
-    IFS="$OLD_IFS"
 }
 
 function divide_jar_out_for_phones {
-    phones="$1"
-    
-    if [ "$phones" = "all" ];then
-        phones=$PHONES
-    fi
+    local phones="$1"
 
-    OLD_IFS="$IFS"
-    IFS=$':'
     for phone in $phones
     do
-        cd "$PORT_ROOT/$phone" 2>/dev/null 1>/dev/null 
-        if [ $? -ne 0 ]; then
-            echo -e "***\n$ERROR:[$phone] is wrong phone's name\n***" 
-            continue
-        fi
+        cd "$PORT_ROOT/$phone"
         echo -e "${BLUE}DIVIDE jar.out for [$phone]$ENDC\n"
         $MERGE_DIVIDE_TOOLS "-d" "$phone"
     done
-    IFS="$OLD_IFS"
 }
 
-function usage {
-    echo "**************************** USAGE ****************************"
-    echo -e "CASE 1:"
-    echo -e "\t --exec --phones {[phone1:phone2:...:phoneN] or [all]} --cmdstr [\"cmdstring\"]"
-    echo -e "CASE 2:"
-    echo -e "\t --patch --from [phone] --to {[phone1:phone2:...:phoneN] or [all]} --head [length]"
-    echo -e "CASE 3:"
-    echo -e "\t --patch --from [phone] --to {[phone1:phone2:...:phoneN] or [all]} --commits [pre_commit] [post_commit]"
-    echo -e "CASE 4:"
-    echo -e "\t --merge-jar-out --phones {[phone1:phone2:...:phoneN] or [all]}"
-    echo -e "CASE 5:"
-    echo -e "\t --divide-jar-out --phones {[phone1:phone2:...:phoneN] or [all]}"  
+function check_phones {
+    local invalid
+    local valid
+    local t
+    t="$1"
+    TARGETS=
+    for (( i=0; i<${#FACTORYS[*]}; i++ ))
+    do
+        if [ "$t" = "${FACTORYS[i]}" ]
+        then
+            eval t="$""{""$t""[*]}"
+            break
+        fi
+    done
+    if [ "$t" = "all" ]
+    then
+        t="$ALL_PHONES"
+    fi
 
+    for p in $t
+    do
+        if [[ -d $PORT_ROOT/$p && -n "$p" && -n "$ALL_PHONES" && ${ALL_PHONES/$p/} != ${ALL_PHONES} ]]
+        then
+            valid="$valid $p"
+        else
+            invalid="$invalid $p"
+        fi
+    done
+    [ -z "$valid" ] && error_exit "no valid targets"
+    echo ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    [ -n "$invalid" ] && echo -e "${RED}INVALID TARGETS${ENDC}:\n\t$invalid"
+    TARGETS=$valid
+    echo -e "${GREEN}VALID TARGETS${ENDC}:"
+    echo -e "\t$TARGETS"
+    [ -z "$UPLOAD" ] || echo -e "${GREEN}UPLOAD${ENDC}:\n\t$UPLOAD"
+    echo ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    echo
+}
+
+function error_exit {
+    echo -e "$ERROR: $1"
     exit 1
 }
 
-if [ -z "$PORT_ROOT" ];then
-    echo -e "$ERROR: didn't config env"
-    exit 1 
-fi
+function usage {
+    echo "*********************************************** USAGE ******************************************************"
+    echo "$TOOL_NAME [OPTIN]"
+    echo "OPTION"
+    echo -e "CASE 1:"
+    echo -e "\t --exec --phones {\"[phone1 phone2 ... phoneN] or [all]\"} --cmdstr [\"cmdstring\"]"
+    echo -e "CASE 2:"
+    echo -e "\t [--without-upload] --patch --from [phone] --to {\"[phone1 phone2 ... phoneN]\" or \"[FACTORY]\" or \"[all]\"} --head [length]"
+    echo -e "CASE 3:"
+    echo -e "\t [--without-upload] --patch --from [phone] --to {\"[phone1 phone2 ... phoneN]\" or \"[FACTORY]\" or \"[all]\"} --commits [pre_commit] [post_commit]"
+    echo -e "CASE 4:"
+    echo -e "\t --merge-jar-out --phones {\"[phone1 phone2 ... phoneN]\" or \"[FACTORY]\" or \"[all]\"}"
+    echo -e "CASE 5:"
+    echo -e "\t --divide-jar-out --phones {\"[phone1 phone2 ... phoneN]\" or \"[FACTORY]\" or \"[all]\"}"
+    echo
+    exit $1
+}
 
-if [ "$1" = "--exec" ];then 
-    if [ "$2" = "--phones" ];then
-        phones="$3"
-    else 
-        usage
-    fi
-    if [ "$4" = "--cmdstr" ];then
+
+####start###
+case "$1" in
+    "--exec")
+        [[ "$2" = "--phones" &&  "$4" = "--cmdstr" ]] || usage 1
+        cd $PORT_ROOT
+        ALL_PHONES=$(find . -maxdepth 1 -type d | sed "s/\.\///" | grep -v "\.")
+        check_phones "$3"
         cmdstr="$5"
-    else
-        usage
-    fi
+        execute_for_phones "$TARGETS" "$cmdstr"
+        ;;
+    "--patch" | "--without-upload")
+        if [ $1 = "--without-upload" ]
+        then
+            UPLOAD="false"
+            shift
+        else
+            UPLOAD="true"
+        fi
 
-    execute_for_phones "$phones" "$cmdstr"
-elif [ "$1" = "--patch" ];then
-    if [ "$2" = "--from" ];then
+        [[ "$1" = "--patch" && "$2" = "--from" && "$4" = "--to" ]] || usage 1
         from="$3"
-    else 
-        usage
-    fi
-
-    if [ "$4" = "--to" ];then
-        to="$5"
-        if [ "$to" = "all" ];then
-            to="$PHONES"
-        fi
-        if [ "$to" = "htc" ];then
-            to="$HTC"
-        fi
-        if [ "$to" = "huawei" ];then
-            to="$HUAWEI"
-        fi
-        if [ "$to" = "samsung" ];then
-            to="$SAMSUMG"
-        fi
-        if [ "$to" = "sony" ];then
-            to="$SONY"
-        fi
-        if [ "$to" = "moto" ];then
-            to="$MOTO"
-        fi
-    else
-        usage
-    fi
-
-    cd "$PORT_ROOT/$from" 2>/dev/null 1>/dev/null
-    if [ $? -ne 0 ]; then
-        echo -e "***\n$ERROR:[$from] is wrong phone's name\n***" 
-        exit 1
-    fi    
-
-    if [ "$6" = "--head" ];then
-        length="$7"
-        pre=`git log --oneline HEAD~$length -1 | cut -d' ' -f1`
-        post=`git log --oneline HEAD -1 | cut -d' ' -f1`
-    elif [ "$6" = "--commits" ];then
-        pre="$7"
-        post="$8"
-    else
-        usage
-    fi
-
-    if [ -z "$pre" -o -z "$post" ];then
-        usage
-    fi
-
-    patch_commits "$from" "$to" "$pre" "$post"
-elif [ "$1" = "--merge-jar-out" ];then
-    if [ "$2" = "--phones" ];then
-        phones="$3"
-    else
-        usage
-    fi
-    merge_jar_out_for_phones "$phones"
-elif [ "$1" = "--divide-jar-out" ];then
-    if [ "$2" = "--phones" ];then
-        phones="$3"
-    else
-        usage
-    fi
-    divide_jar_out_for_phones "$phones"
-else
-    usage
-fi
+        [ ! -d "$PORT_ROOT/$from" ] && error_exit "[$from] is wrong phone's name"  #check from
+        check_phones "$5"
+        to="$TARGETS"
+        cd "$PORT_ROOT/$from"
+        case "$6" in
+            "--head")
+                pre=$(git log --oneline HEAD~$7 -1 | cut -d' ' -f1)
+                post=$(git log --oneline HEAD -1 | cut -d' ' -f1)
+                ;;
+            "--commits")
+                pre="$7"
+                post="$8"
+                ;;
+            *)
+                usage 1
+                ;;
+        esac
+        [[ -z "$pre" || -z "$post" ]] && usage 1
+        patch_commits "$from" "$to" "$pre" "$post"
+        ;;
+    "--merge-jar-out")
+        [[ "$2" = "--phones" ]] || usages 1
+        check_phones "$3"
+        merge_jar_out_for_phones "$TARGETS"
+        ;;
+    "--divide-jar-out")
+        [[ "$2" = "--phones" ]] || usages 1
+        check_phones "$3"
+        divide_jar_out_for_phones "$TARGETS"
+        ;;
+    *)
+        usage 1
+        ;;
+esac
 
