@@ -1,6 +1,6 @@
-PWD=`pwd`
-METADATA_DIR=$PWD/metadata
-OUT_DIR=$PWD/out
+PRJ_DIR=`pwd`
+METADATA_DIR=$PRJ_DIR/metadata
+OUT_DIR=$PRJ_DIR/out
 ZIP_DIR=$OUT_DIR/ZIP
 TARGET_FILES_DIR=$OUT_DIR/target_files
 TARGET_FILES_ZIP=$OUT_DIR/target_files.zip
@@ -47,6 +47,9 @@ function copy_data_dir {
     echo "Copy miui preinstall apps"
     mkdir -p $TARGET_FILES_DIR/DATA/
     cp -rf $ZIP_DIR/data/media/preinstall_apps $TARGET_FILES_DIR/DATA/
+    if [ -f customize_data.sh ];then
+        ./customize_data.sh $PRJ_DIR
+    fi
 }
 
 function recover_link {
@@ -60,7 +63,7 @@ function process_metadata {
     cp -f $METADATA_DIR/filesystem_config.txt $TARGET_FILES_DIR/META
     cat $TOOL_DIR/target_files_template/META/filesystem_config.txt >> $TARGET_FILES_DIR/META/filesystem_config.txt
     cp -f $METADATA_DIR/recovery.fstab $TARGET_FILES_DIR/RECOVERY/RAMDISK/etc
-    python $TOOL_DIR/uniq_first.py $METADATA_DIR/apkcerts.txt $TARGET_FILES_DIR/META/apkcerts.txt $PWD
+    python $TOOL_DIR/uniq_first.py $METADATA_DIR/apkcerts.txt $TARGET_FILES_DIR/META/apkcerts.txt $PRJ_DIR
     cat $TARGET_FILES_DIR/META/apkcerts.txt | sort > $TARGET_FILES_DIR/temp.txt
     mv $TARGET_FILES_DIR/temp.txt $TARGET_FILES_DIR/META/apkcerts.txt
     recover_link
