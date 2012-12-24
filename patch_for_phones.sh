@@ -7,7 +7,7 @@ then
     exit
 fi
 
-ALL_PHONES=$(sed -n '2p' $PORT_ROOT/Makefile  | sed 's/PRODUCTS := //')
+ALL_PHONES=$(sed -n '2p' $PORT_ROOT/build/makefile  | sed 's/PRODUCTS := //')
 ALL_PHONES="$ALL_PHONES $EXTRA_PHONES"  #set environment variable EXTRA_PHONES to other phones that aren't in Makefile
 
 FACTORYS=(HTC HUAWEI SONY MOTO SAMSUNG)
@@ -218,7 +218,7 @@ function patch_one_commit {
 
     cd "$PORT_ROOT/$from"
     mkdir $PATCH_SWAP_PATH -p
-    git.patch ${commit}^..${commit} | sed "s/framework2.jar.out/framework.jar.out/g" | sed "s/framework-ext.jar.out/framework.jar.out/g" > ${PATCH_SWAP_PATH}/${from}-patch.${commit}
+    git.patch ${commit}^..${commit} 2>/dev/null | sed "s/framework2.jar.out/framework.jar.out/g" | sed "s/framework-ext.jar.out/framework.jar.out/g" > ${PATCH_SWAP_PATH}/${from}-patch.${commit}
     IFS_OLD="$IFS"
     IFS=
     MGS=
