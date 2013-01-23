@@ -2,88 +2,89 @@ import java.io.File;
 import java.util.ArrayList;
 
 public class ResValuesModify {
-    private ArrayList<File> mSrcFileArray;
-    private ArrayList<File> mDestFileArray;
-    private boolean mIsAppRes = false;
+    private ArrayList<File> mSrcFiles = new ArrayList<File>();
+    private ArrayList<File> mDestFiles = new ArrayList<File>();
+    private ArrayList<File> mConfigFiles = new ArrayList<File>();
+    private static final String LOG_TAG = "CHECK";
 
     public static void main(String[] args) {
         ResValuesModify resVM = new ResValuesModify();
-        boolean bRet = resVM.parseCommandLine(args);
-        if (false == bRet) {
-            return;
-        }
-
-        bRet = resVM.pathCheck(args);
-        if (false == bRet) {
+        if (!resVM.checkArgs(args) || !resVM.checkPath(args)) {
+            resVM.usage();
             return;
         }
         resVM.mergeXML();
     }
 
-    public ResValuesModify() {
-        mSrcFileArray = new ArrayList<File>();
-        mDestFileArray = new ArrayList<File>();
-    }
-
-    public String delPrefixString(String src, String needDel) {
-        return null;
-    }
-
-    private boolean parseCommandLine(String[] args) {
-        if ((2 != args.length) && (3 != args.length)){
-            usage();
+    private boolean checkArgs(String[] args) {
+        boolean ret = true;
+        if (args.length < 2) {
+            Log.e(LOG_TAG, "invalid argument count");
             return false;
         }
 
         if (args[0].equals(args[1])) {
-            System.out.println("ERROR: src dir is the same with dest dir");
-            usage();
-            return false;
+            Log.e(LOG_TAG, "src dir is the same with dest dir");
+            ret = false;
         }
-        
-        if((3 == args.length) && ("--app".equals(args[2]))){
-            mIsAppRes = true;
+
+        for(int i = 2; i < args.length; i++){
+            File f = new File(args[i]);
+            if(f.exists() && f.isFile()){
+                mConfigFiles.add(f);
+            }else{
+                Log.i(LOG_TAG, "ignore config file:" + f.getName());
+            }
         }
-        return true;
+        return ret;
     }
 
-    private boolean pathCheck(String[] args) {
-        boolean bRet = FileCheck.getXmlFiles(args[0], mSrcFileArray);
-        if (false == bRet) {
-            usage();
-            return false;
-        }
-        bRet = FileCheck.getXmlFiles(args[1], mDestFileArray);
-        if (false == bRet) {
-            usage();
-            return false;
-        }
-        /*
-        System.out.println("###################################################");
-        System.out.println("*** Source Files: ***********");
-        for (int i = 0; i < mSrcFileArray.size(); i++) {
-            System.out.println("\t" + mSrcFileArray.get(i).getName());
-        }
-        System.out.println("------------------------------------------------");
-        System.out.println("*** Destination Files: ******");
-        for (int i = 0; i < mDestFileArray.size(); i++) {
-            System.out.println("\t" + mDestFileArray.get(i).getName());
-        }
-        System.out.println("###################################################");
-        */
-
-        return true;
+    private boolean checkPath(String[] args) {
+        return perpareXmlFiles(args[0], mSrcFiles) && perpareXmlFiles(args[1], mDestFiles);
     }
 
     private void mergeXML() {
-        XMLMerge xmlMerge = new XMLMerge(mSrcFileArray, mDestFileArray, mIsAppRes);
-        xmlMerge.merge();
+        (new XMLMerge(mSrcFiles, mDestFiles, mConfigFiles)).merge();
     }
 
     private void usage() {
-        System.out.println("usage: ResValuesModify $1 $2 [--app]");
-        System.out.println("\t$1: Miui values dir");
-        System.out.println("\t$2: ThirdParty values dir");
-        System.out.println("\t$3: Merge application's resource, default merge framework-res's resource");
+        Log.i("USAGE: ");
+        Log.i("ResValuesModify src-values-dir dest-values-dir [config-files ...]");
+        Log.i("    config-files: config file that explicitly declare merge-rule");
+        Log.i("");
+        Log.i("config-file format:");
+        Log.i("--------------------------------");
+        Log.i("- node-name [name-attribute-value]");
+        Log.i("+ node-name [name-attribute-value]");
+        Log.i("--------------------------------");
+        Log.i("Note:");
+        Log.i("- : explicitly declare don't merge this kind of nodes");
+        Log.i("+ : explicitly declare that merge this kind of nodes");
+        Log.i("+'s priority is higher then -");
+        Log.i("[name-attribute-value] is optional");
+        Log.i("");
+    }
+
+    private boolean perpareXmlFiles(String path, ArrayList<File> xmlFiles) {
+        File dir = new File(path);
+        if (!dir.isDirectory()) {
+            Log.e(LOG_TAG, path + " : no such directory");
+            return false;
+        }
+
+        File[] files = dir.listFiles();
+        for (File f : files) {
+            if (f.isFile()) {
+                if (f.getName().endsWith(".xml") || f.getName().endsWith(".xml.part")) {
+                    xmlFiles.add(f);
+                }
+            }
+        }
+
+        if (0 == xmlFiles.size()) {
+            Log.e(LOG_TAG, "No xml file in " + path);
+            return false;
+        }
+        return true;
     }
 }
