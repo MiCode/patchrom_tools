@@ -25,14 +25,17 @@ public class XMLMerge {
     private static Map<File, Document> sDes = new HashMap<File, Document>();
     private static Map<String, HashSet<String>> sIncludeRule = new HashMap<String, HashSet<String>>();
     private static Map<String, HashSet<String>> sExcludeRule = new HashMap<String, HashSet<String>>();
+    private static Map<String, HashSet<String>> sInsertRule = new HashMap<String, HashSet<String>>();
 
     private static final int MERGE_DONT_NEED_MERGE = 1;
     private static final int MERGE_DONT_FIND_DEST_FILE = 2;
     private static final int MERGE_ADD_ELEMENT = 3;
     private static final int MERGE_MODIFY_ELEMENT = 4;
-    private static final int MERGE_INVALID_NODE = 5;
+    private static final int MERGE_INCERT_ITEMS= 5;
+    private static final int MERGE_INVALID_NODE = 6;
     private static final String RESOURCES_TAG = "resources";
     private static final String STRING_ARRAY_TAG = "string-array";
+    private static final String ITEM_TAG = "item";
     private static final String NAME_TAG = "name";
     private static final String LOG_TAG = "merge xml";
 
@@ -68,8 +71,14 @@ public class XMLMerge {
             try {
                 r = new BufferedReader(new FileReader(f));
                 while ((l = r.readLine()) != null) {
+                    l = l.trim();
+                    if (l.length() == 0 || l.startsWith("#")) {
+                        continue;
+                    }
                     String[] item = l.split(" ");
-                    if (item.length > 1 && ("-".equals(item[0]) || "+".equals(item[0]))) {
+                    if (item.length > 1
+                            && ("-".equals(item[0]) || "+".equals(item[0]) || "I"
+                                    .equalsIgnoreCase(item[0]))) {
                         String nodeName = item[1];
                         HashSet<String> nameAttrs;
                         if ("-".equals(item[0])) {
@@ -78,11 +87,17 @@ public class XMLMerge {
                                 nameAttrs = new HashSet<String>();
                                 sExcludeRule.put(nodeName, nameAttrs);
                             }
-                        } else {
+                        } else if ("+".equals(item[0])) {
                             nameAttrs = sIncludeRule.get(nodeName);
                             if (nameAttrs == null) {
                                 nameAttrs = new HashSet<String>();
                                 sIncludeRule.put(nodeName, nameAttrs);
+                            }
+                        } else {
+                            nameAttrs = sInsertRule.get(nodeName);
+                            if (nameAttrs == null) {
+                                nameAttrs = new HashSet<String>();
+                                sInsertRule.put(nodeName, nameAttrs);
                             }
                         }
                         if (item.length == 2) {
@@ -121,6 +136,14 @@ public class XMLMerge {
         Log.i("");
         Log.i(LOG_TAG, "Exclude:");
         for (Map.Entry<String, HashSet<String>> e : sExcludeRule.entrySet()) {
+            Log.i(LOG_TAG, "-->" + e.getKey());
+            for (String s : e.getValue()) {
+                Log.i(LOG_TAG, "----->" + s);
+            }
+        }
+        Log.i("");
+        Log.i(LOG_TAG, "Insert:");
+        for (Map.Entry<String, HashSet<String>> e : sInsertRule.entrySet()) {
             Log.i(LOG_TAG, "-->" + e.getKey());
             for (String s : e.getValue()) {
                 Log.i(LOG_TAG, "----->" + s);
@@ -206,6 +229,13 @@ public class XMLMerge {
             return MERGE_DONT_NEED_MERGE;
         }
 
+        if (tryInsertItemsToDesArrayNode(node)) {
+            Log.i(LOG_TAG, "inscert new items to dest array node: " + node.getNodeName() + "["
+                    + "name="
+                    + ((Element) node).getAttribute(NAME_TAG) + "]");
+            return MERGE_INCERT_ITEMS;
+        }
+
         if (tryReplaceDesNode(node)) {
             Log.i(LOG_TAG, "replace node to dest: " + node.getNodeName() + "[" + "name="
                     + ((Element) node).getAttribute(NAME_TAG) + "]");
@@ -236,8 +266,8 @@ public class XMLMerge {
     }
 
     private boolean needMerge(Node node) {
-        // search Include config firstly
-        if (matchConfig(node, sIncludeRule)) {
+        // search Include and Insert config firstly
+        if (matchConfig(node, sIncludeRule) || matchConfig(node, sInsertRule)) {
             return true;
         }
         // search Exclude config secondly
@@ -252,6 +282,48 @@ public class XMLMerge {
         if (nameAttrValues.contains("*")
                 || nameAttrValues.contains(((Element) node).getAttribute(NAME_TAG))) {
             return true;
+        }
+        return false;
+    }
+
+    // try insert the new items to array node
+    private boolean tryInsertItemsToDesArrayNode(Node node) {
+        String nodeName = node.getNodeName();
+        String nameAttrValue = ((Element) node).getAttribute(NAME_TAG);
+        if (matchConfig(node, sInsertRule)) {
+            for (Map.Entry<File, Document> des : sDes.entrySet()) {
+                NodeList destNodes = des.getValue().getElementsByTagName(nodeName);
+                for (int i = 0; i < destNodes.getLength(); i++) {
+                    Node desNode = destNodes.item(i);
+                    try {
+                        if (nameAttrValue.equals(((Element) desNode).getAttribute(NAME_TAG))) {
+                            NodeList desItems = ((Element) desNode).getElementsByTagName(ITEM_TAG);
+                            NodeList srcItems = ((Element)node).getElementsByTagName(ITEM_TAG);
+                            if(desItems.getLength() == 0 || srcItems.getLength() ==0){
+                                return false;
+                            }
+                            ArrayList<String> desItemTexts = new ArrayList<String>();
+                            for(int j = 0; j < desItems.getLength(); j++){
+                                desItemTexts.add(desItems.item(j).getTextContent());
+                            }
+                            Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
+                            for(int j = 0; j < srcItems.getLength(); j++){
+                                String srcText = srcItems.item(j).getTextContent();
+                                if(!desItemTexts.contains(srcText)){
+                                    Element item = doc.createElement(ITEM_TAG);
+                                    item.appendChild(doc.createTextNode(srcText));
+                                    desNode.insertBefore(des.getValue().importNode(item, true),
+                                            desItems.item(0));
+                                }
+                            }
+                            return true;
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        return false;
+                    }
+                }
+            }
         }
         return false;
     }

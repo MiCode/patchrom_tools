@@ -52,17 +52,6 @@ public class ResValuesModify {
         Log.i("ResValuesModify src-values-dir dest-values-dir [config-files ...]");
         Log.i("    config-files: config file that explicitly declare merge-rule");
         Log.i("");
-        Log.i("config-file format:");
-        Log.i("--------------------------------");
-        Log.i("- node-name [name-attribute-value]");
-        Log.i("+ node-name [name-attribute-value]");
-        Log.i("--------------------------------");
-        Log.i("Note:");
-        Log.i("- : explicitly declare don't merge this kind of nodes");
-        Log.i("+ : explicitly declare that merge this kind of nodes");
-        Log.i("+'s priority is higher then -");
-        Log.i("[name-attribute-value] is optional");
-        Log.i("");
     }
 
     private boolean perpareXmlFiles(String path, ArrayList<File> xmlFiles) {
