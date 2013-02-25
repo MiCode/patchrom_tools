@@ -16,6 +16,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.w3c.dom.Text;
 
 import com.sun.org.apache.xml.internal.serialize.OutputFormat;
 import com.sun.org.apache.xml.internal.serialize.XMLSerializer;
@@ -31,13 +32,16 @@ public class XMLMerge {
     private static final int MERGE_DONT_FIND_DEST_FILE = 2;
     private static final int MERGE_ADD_ELEMENT = 3;
     private static final int MERGE_MODIFY_ELEMENT = 4;
-    private static final int MERGE_INCERT_ITEMS= 5;
+    private static final int MERGE_INCERT_ITEMS = 5;
     private static final int MERGE_INVALID_NODE = 6;
     private static final String RESOURCES_TAG = "resources";
     private static final String STRING_ARRAY_TAG = "string-array";
+    private static final String STRING_TAG = "string";
+    private static final String XLIFF_TAG = "xliff:g";
     private static final String ITEM_TAG = "item";
     private static final String NAME_TAG = "name";
     private static final String LOG_TAG = "merge xml";
+    private static final String MSGID_TAG = "msgid";
 
     public XMLMerge(ArrayList<File> srcFiles, ArrayList<File> desFiles, ArrayList<File> configFiles) {
         for (File srcFile : srcFiles) {
@@ -253,11 +257,8 @@ public class XMLMerge {
     }
 
     private void formatDoc(Document doc) {
-        // adjust special nodes
-        if (existNode(doc, STRING_ARRAY_TAG)) {
-            adjustStringArrayMergeRoot(doc);
-            // writeXML(doc, new File("after_adjust_string-array"));
-        }
+        removeXliffgNode(doc);
+        removeMsgidAttr(doc);
     }
 
     private boolean checkNode(Node node) {
@@ -292,28 +293,28 @@ public class XMLMerge {
         String nameAttrValue = ((Element) node).getAttribute(NAME_TAG);
         if (matchConfig(node, sInsertRule)) {
             for (Map.Entry<File, Document> des : sDes.entrySet()) {
-                NodeList destNodes = des.getValue().getElementsByTagName(nodeName);
-                for (int i = 0; i < destNodes.getLength(); i++) {
-                    Node desNode = destNodes.item(i);
+                Document desDoc = des.getValue();
+                NodeList desNodes = desDoc.getElementsByTagName(nodeName);
+                for (int i = 0; i < desNodes.getLength(); i++) {
+                    Node desNode = desNodes.item(i);
                     try {
                         if (nameAttrValue.equals(((Element) desNode).getAttribute(NAME_TAG))) {
                             NodeList desItems = ((Element) desNode).getElementsByTagName(ITEM_TAG);
-                            NodeList srcItems = ((Element)node).getElementsByTagName(ITEM_TAG);
-                            if(desItems.getLength() == 0 || srcItems.getLength() ==0){
+                            NodeList srcItems = ((Element) node).getElementsByTagName(ITEM_TAG);
+                            if (desItems.getLength() == 0 || srcItems.getLength() == 0) {
                                 return false;
                             }
                             ArrayList<String> desItemTexts = new ArrayList<String>();
-                            for(int j = 0; j < desItems.getLength(); j++){
+                            for (int j = 0; j < desItems.getLength(); j++) {
                                 desItemTexts.add(desItems.item(j).getTextContent());
                             }
-                            Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
-                            for(int j = 0; j < srcItems.getLength(); j++){
+
+                            for (int j = 0; j < srcItems.getLength(); j++) {
                                 String srcText = srcItems.item(j).getTextContent();
-                                if(!desItemTexts.contains(srcText)){
-                                    Element item = doc.createElement(ITEM_TAG);
-                                    item.appendChild(doc.createTextNode(srcText));
-                                    desNode.insertBefore(des.getValue().importNode(item, true),
-                                            desItems.item(0));
+                                if (!desItemTexts.contains(srcText)) {
+                                    Element item = desDoc.createElement(ITEM_TAG);
+                                    item.appendChild(desDoc.createTextNode(srcText));
+                                    desNode.insertBefore(item, desItems.item(0));
                                 }
                             }
                             return true;
@@ -334,12 +335,13 @@ public class XMLMerge {
         String nodeName = node.getNodeName();
         String nameAttrValue = ((Element) node).getAttribute(NAME_TAG);
         for (Map.Entry<File, Document> des : sDes.entrySet()) {
-            NodeList destNodes = des.getValue().getElementsByTagName(nodeName);
-            for (int i = 0; i < destNodes.getLength(); i++) {
-                Node desNode = destNodes.item(i);
+            Document desDoc = des.getValue();
+            NodeList desNodes = des.getValue().getElementsByTagName(nodeName);
+            for (int i = 0; i < desNodes.getLength(); i++) {
+                Node desNode = desNodes.item(i);
                 try {
                     if (nameAttrValue.equals(((Element) desNode).getAttribute(NAME_TAG))) {
-                        desNode.getParentNode().replaceChild(des.getValue().importNode(node, true),
+                        desNode.getParentNode().replaceChild(desDoc.importNode(node, true),
                                 desNode);
                         return true;
                     }
@@ -356,10 +358,11 @@ public class XMLMerge {
     private boolean tryAddDesNode(Node node) {
         String nodeName = node.getNodeName();
         for (Map.Entry<File, Document> des : sDes.entrySet()) {
+            Document desDoc = des.getValue();
             if (existNode(des.getValue(), nodeName)) {
                 try {
-                    des.getValue().getElementsByTagName(nodeName).item(0).getParentNode()
-                            .appendChild(des.getValue().importNode(node, true));
+                    desDoc.getElementsByTagName(nodeName).item(0).getParentNode()
+                            .appendChild(desDoc.importNode(node, true));
                     return true;
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -375,24 +378,56 @@ public class XMLMerge {
         return nodes.getLength() > 0;
     }
 
-    private void adjustStringArrayMergeRoot(Document doc) {
-        NodeList stringArrays = doc.getElementsByTagName("string-array");
+    private void removeXliffgNodeFromStringArray(Document doc) {
+        NodeList stringArrays = doc.getElementsByTagName(STRING_ARRAY_TAG);
         for (int i = 0; i < stringArrays.getLength(); i++) {
             Element stringArray = (Element) stringArrays.item(i);
-            NodeList xliffs = stringArray.getElementsByTagName("xliff:g");
+            NodeList xliffs = stringArray.getElementsByTagName(XLIFF_TAG);
             if (xliffs.getLength() > 0) {
                 Node papa = xliffs.item(0).getParentNode().getParentNode();
                 ArrayList<String> vals = new ArrayList<String>();
-                while (stringArray.getElementsByTagName("xliff:g").getLength() != 0) {
+                while (stringArray.getElementsByTagName(XLIFF_TAG).getLength() != 0) {
                     vals.add(xliffs.item(0).getTextContent());
                     xliffs.item(0).getParentNode().getParentNode()
                             .removeChild(xliffs.item(0).getParentNode());
                 }
                 for (int j = 0; j < vals.size(); j++) {
-                    Element e = doc.createElement("item");
+                    Element e = doc.createElement(ITEM_TAG);
                     e.appendChild(doc.createTextNode(vals.get(j)));
                     papa.appendChild(e);
                 }
+            }
+        }
+    }
+
+    private void removeXliffgNodeFromString(Document doc) {
+        Element res = (Element) doc.getElementsByTagName(RESOURCES_TAG).item(0);
+        NodeList xliffs = res.getElementsByTagName(XLIFF_TAG);
+        int len = xliffs.getLength();
+        while (len > 0) {
+            Node xliff = xliffs.item(0);
+            System.out.println("papa " + xliff.getParentNode().getNodeName());
+            System.out.println("xlif " + xliff.getTextContent());
+            Text text = doc.createTextNode(xliff.getTextContent());
+            xliff.getParentNode().replaceChild(text, xliff);
+
+            xliffs = res.getElementsByTagName(XLIFF_TAG);
+            len = xliffs.getLength();
+        }
+    }
+
+    private void removeXliffgNode(Document doc) {
+        removeXliffgNodeFromStringArray(doc);
+        removeXliffgNodeFromString(doc);
+    }
+
+    private void removeMsgidAttr(Document doc) {
+        Node resNode = doc.getElementsByTagName(RESOURCES_TAG).item(0);
+        NodeList nodes = resNode.getChildNodes();
+        for (int i = 0; i < nodes.getLength(); i++) {
+            Node node = nodes.item(i);
+            if (Node.ELEMENT_NODE == node.getNodeType()) {
+                ((Element) node).removeAttribute(MSGID_TAG);
             }
         }
     }

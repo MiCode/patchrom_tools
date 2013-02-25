@@ -1,4 +1,7 @@
-# UAGE:
+# NOTE:
+# default operation is replace dest node with src node if the dest node exist or 
+#   append src node to the file if dest node doesn't exist
+#
 # - type [name]
 #      explicitly declare don't merge this kind of nodes
 # 
@@ -11,4 +14,5 @@
 # priority of "+" and "I" is higher then "-"
 
 - add-resource
+
 I string-array config_statusBarIcons

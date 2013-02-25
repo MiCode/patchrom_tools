@@ -28,11 +28,11 @@ public class ResValuesModify {
             ret = false;
         }
 
-        for(int i = 2; i < args.length; i++){
+        for (int i = 2; i < args.length; i++) {
             File f = new File(args[i]);
-            if(f.exists() && f.isFile()){
+            if (f.exists() && f.isFile()) {
                 mConfigFiles.add(f);
-            }else{
+            } else {
                 Log.i(LOG_TAG, "ignore config file:" + f.getName());
             }
         }
