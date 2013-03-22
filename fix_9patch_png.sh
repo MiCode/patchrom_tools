@@ -24,7 +24,7 @@ APK_FILE=$1.apk
 #STOCK APP
 if [ -z $4 ];then
 	ORIGINAL_APK=stockrom/system/app/$APK_FILE
-#MIUI APP & stock framework-res.apk
+#MIUI APP
 else
 	ORIGINAL_APK=$2/$APK_FILE
 fi
