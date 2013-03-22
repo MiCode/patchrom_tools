@@ -45,4 +45,7 @@ for file in `find $TMP_ORIGINAL_DIR -name *.9.png`; do
 	targetfile=`echo $file | sed -e "s/-original/-target/"`
 	cp $file $targetfile
 done
-cd $TMP_TARGET_DIR && zip -r ../$APK_FILE ./
+cd $TMP_TARGET_DIR
+#only store all files, not compress files
+#as raw resource can't be compressed.
+zip -r0 ../$APK_FILE ./
