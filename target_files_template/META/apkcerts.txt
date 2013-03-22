@@ -415,3 +415,4 @@ name="MiuiVideo.apk" certificate="build/target/product/security/platform.x509.pe
 name="StockSettings.apk" certificate="build/target/product/security/platform.x509.pem" private_key="build/target/product/security/platform.pk8"
 name="Userbook.apk" certificate="build/target/product/security/platform.x509.pem" private_key="build/target/product/security/platform.pk8"
 name="MiShop.apk" certificate="PRESIGNED" private_key=""
+name="AirkanPhoneService.apk" certificate="build/target/product/security/platform.x509.pem" private_key="build/target/product/security/platform.pk8"
