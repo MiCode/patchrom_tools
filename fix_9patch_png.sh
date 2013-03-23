@@ -43,7 +43,16 @@ unzip $TMP_ORIGINAL_FILE -d $TMP_ORIGINAL_DIR
 unzip $TMP_TARGET_FILE -d $TMP_TARGET_DIR
 for file in `find $TMP_ORIGINAL_DIR -name *.9.png`; do
 	targetfile=`echo $file | sed -e "s/-original/-target/"`
-	cp $file $targetfile
+	flag=0
+	for file2 in `find $1 -name *.9.png`; do
+		if [ $file = $file2 ]; then
+		flag=1
+		break
+		fi    
+	done
+	if [ -z $flag ]; then
+		cp $file $targetfile
+	fi    
 done
 cd $TMP_TARGET_DIR
 #only store all files, not compress files
