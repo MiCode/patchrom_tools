@@ -11,6 +11,10 @@ public class Log {
         System.err.println( String.format("ERROR[%s]: %s", tag, err));
     }
 
+    public static void w(String tag, String err){
+        System.err.println( String.format("WARING[%s]: %s", tag, err));
+    }
+
     public static void e(String err){
         System.err.println(err);
     }

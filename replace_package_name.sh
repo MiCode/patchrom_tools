@@ -1,15 +1,17 @@
 #!/bin/bash
 
-if [ $# -ne 2 ]
+if [ $# -ne 3 ]
 then
-	echo $0 src_package_name dest_package_name
+	echo $0 path src_package_name dest_package_name
 	echo 
 	exit
 fi
 
-src="$1"
-des="$2"
+path="$1"
+src="$2"
+des="$3"
 
+cd $path
 #replace xml
 for f in $(find -name "*.xml")
 do

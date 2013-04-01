@@ -57,7 +57,7 @@ public class ResValuesModify {
     private boolean perpareXmlFiles(String path, ArrayList<File> xmlFiles) {
         File dir = new File(path);
         if (!dir.isDirectory()) {
-            Log.e(LOG_TAG, path + " : no such directory");
+            Log.w(LOG_TAG, path + " : no such directory");
             return false;
         }
 
@@ -71,7 +71,7 @@ public class ResValuesModify {
         }
 
         if (0 == xmlFiles.size()) {
-            Log.e(LOG_TAG, "No xml file in " + path);
+            Log.w(LOG_TAG, "No xml file in " + path);
             return false;
         }
         return true;

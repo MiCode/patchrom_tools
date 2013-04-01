@@ -50,7 +50,7 @@ public class XMLMerge {
                         DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(srcFile));
             } catch (Exception e) {
                 e.printStackTrace();
-                Log.e(LOG_TAG, "src file:" + srcFile.getName() + " is invalid xml file");
+                Log.w(LOG_TAG, "src file:" + srcFile.getName() + " is invalid xml file");
             }
         }
 
@@ -60,7 +60,7 @@ public class XMLMerge {
                         DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(desFile));
             } catch (Exception e) {
                 e.printStackTrace();
-                Log.e(LOG_TAG, "dest file:" + desFile.getName() + " is invalid xml file");
+                Log.w(LOG_TAG, "dest file:" + desFile.getName() + " is invalid xml file");
             }
         }
 
@@ -160,7 +160,7 @@ public class XMLMerge {
     private boolean chcekFile() {
         for (Map.Entry<File, Document> src : sSrc.entrySet()) {
             if (src.getValue().getElementsByTagName(RESOURCES_TAG).getLength() != 1) {
-                Log.e(LOG_TAG, "src file:" + src.getKey().getName() + " don't include a valid \""
+                Log.w(LOG_TAG, "src file:" + src.getKey().getName() + " don't include a valid \""
                         + RESOURCES_TAG + "\" node");
                 sSrc.remove(src.getKey());
             }
@@ -168,19 +168,19 @@ public class XMLMerge {
 
         for (Map.Entry<File, Document> des : sDes.entrySet()) {
             if (des.getValue().getElementsByTagName(RESOURCES_TAG).getLength() != 1) {
-                Log.e(LOG_TAG, "dest file:" + des.getKey().getName() + " don't include a valid \""
+                Log.w(LOG_TAG, "dest file:" + des.getKey().getName() + " don't include a valid \""
                         + RESOURCES_TAG + "\" node");
                 sDes.remove(des.getKey());
             }
         }
 
         if (sSrc.isEmpty()) {
-            Log.e(LOG_TAG, "no vaild src files");
+            Log.w(LOG_TAG, "no vaild src files");
             return false;
         }
 
         if (sDes.isEmpty()) {
-            Log.e(LOG_TAG, "no valid dest files");
+            Log.w(LOG_TAG, "no valid dest files");
             return false;
         }
         return true;
@@ -406,8 +406,6 @@ public class XMLMerge {
         int len = xliffs.getLength();
         while (len > 0) {
             Node xliff = xliffs.item(0);
-            System.out.println("papa " + xliff.getParentNode().getNodeName());
-            System.out.println("xlif " + xliff.getTextContent());
             Text text = doc.createTextNode(xliff.getTextContent());
             xliff.getParentNode().replaceChild(text, xliff);
 
