@@ -152,6 +152,7 @@ name="Notepadv3.apk" certificate="build/target/product/security/testkey.x509.pem
 name="Notepadv3Solution.apk" certificate="build/target/product/security/testkey.x509.pem" private_key="build/target/product/security/testkey.pk8"
 name="ChromeBookmarksSyncAdapter.apk" certificate="PRESIGNED" private_key=""
 name="FaceLock.apk" certificate="PRESIGNED" private_key=""
+name="GameCenterSDKService.apk" certificate="PRESIGNED" private_key=""
 name="Gmail.apk" certificate="PRESIGNED" private_key=""
 name="Gmail_Data.apk" certificate="PRESIGNED" private_key=""
 name="GoogleBackupTransport.apk" certificate="PRESIGNED" private_key=""
