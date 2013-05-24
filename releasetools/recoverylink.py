@@ -13,14 +13,14 @@ try:
         line = line.rstrip()
         filepath = line.split('|')
         filepath[0] = filepath[0].replace('system', 'SYSTEM')
-        filepath[1] = filepath[1].replace('system', 'SYSTEM')
+        #filepath[1] = filepath[1].replace('system', 'SYSTEM')
         rm = 'rm -f ' + path+ '/' + filepath[0]
         os.popen(rm)
-        dirname=os.path.dirname(filepath[0])
-        filepath[0] = os.path.basename(filepath[0])
-        filepath[1] = os.path.basename(filepath[1])
+        #dirname=os.path.dirname(filepath[0])
+        #filepath[0] = os.path.basename(filepath[0])
+        #filepath[1] = os.path.basename(filepath[1])
         #ln = 'ln -s '+ path+ '/'+ filepath[1] + ' ' + path+ '/'+  filepath[0]
-        ln = 'cd ' + path + '/' + dirname + ';' + 'ln -s ' + filepath[1] + ' ' +  filepath[0]
+        ln = 'cd ' + path + ';' + 'ln -s ' + filepath[1] + ' ' +  filepath[0]
         #print ln
         os.popen(ln)
 except IOError:
