@@ -12,15 +12,11 @@ try:
     for line in linelist:
         line = line.rstrip()
         filepath = line.split('|')
-        filepath[0] = filepath[0].replace('system', 'SYSTEM')
-        #filepath[1] = filepath[1].replace('system', 'SYSTEM')
-        rm = 'rm -f ' + path+ '/' + filepath[0]
+        link_name = filepath[0].replace('system', 'SYSTEM')
+        target = '/' + filepath[1]
+        rm = 'rm -f ' + path+ '/' + link_name
         os.popen(rm)
-        #dirname=os.path.dirname(filepath[0])
-        #filepath[0] = os.path.basename(filepath[0])
-        #filepath[1] = os.path.basename(filepath[1])
-        #ln = 'ln -s '+ path+ '/'+ filepath[1] + ' ' + path+ '/'+  filepath[0]
-        ln = 'cd ' + path + ';' + 'ln -s ' + filepath[1] + ' ' +  filepath[0]
+        ln = 'cd ' + path + ';' + 'ln -s ' + target + ' ' +  link_name
         #print ln
         os.popen(ln)
 except IOError:
