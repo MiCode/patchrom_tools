@@ -1,0 +1,5 @@
+#!/bin/bash
+
+java -jar $PORT_ROOT/tools/ResValuesModify/jar/ResValuesModify.jar $*
+
+
