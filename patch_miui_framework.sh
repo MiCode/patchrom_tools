@@ -84,6 +84,7 @@ apply_miui_patch android.policy.jar.out
 apply_miui_patch services.jar.out
 apply_miui_patch framework.jar.out
 apply_miui_patch secondary-framework.jar.out
+apply_miui_patch mediatek-framework.jar.out
 
 echo
 echo
