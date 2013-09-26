@@ -422,3 +422,5 @@ name="Transfer.apk" certificate="build/target/product/security/platform.x509.pem
 name="YellowPage.apk" certificate="build/target/product/security/shared.x509.pem" private_key="build/target/product/security/shared.pk8"
 name="baidushurufa_52.apk" certificate="PRESIGNED" private_key=""
 name="MiWallpaper.apk" certificate="build/target/product/security/platform.x509.pem" private_key="build/target/product/security/platform.pk8"
+name="BaiduNetworkLocation.apk" certificate="PRESIGNED" private_key=""
+name="FusedLocation.apk" certificate="build/target/product/security/platform.x509.pem" private_key="build/target/product/security/platform.pk8"
