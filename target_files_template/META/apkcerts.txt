@@ -426,3 +426,4 @@ name="BrRemoteService.apk" certificate="build/target/product/security/platform.x
 name="BackupAndRestore.apk" certificate="build/target/product/security/platform.x509.pem" private_key="build/target/product/security/platform.pk8"
 name="MiWallpaper.apk" certificate="build/target/product/security/platform.x509.pem" private_key="build/target/product/security/platform.pk8"
 name="PaymentService.apk" certificate="build/target/product/security/platform.x509.pem" private_key="build/target/product/security/platform.pk8"
+name="AMAPNetworkLocation.apk" certificate="PRESIGNED" private_key=""
