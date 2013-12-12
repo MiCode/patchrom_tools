@@ -444,16 +444,16 @@ def WriteFullOTAPackage(input_zip, output_zip):
   if boot_img and not device_specific.WriteRawImage("/boot", "boot.img"):
     script.WriteRawImage("/boot", "boot.img")
 
+  script.Mount("/data")
+  script.UnpackPackageDir("data", "/data")
+  script.SetPermissionsRecursive("/data/preinstall_apps", 1000, 1000, 0755, 0644)
+  common.ZipWriteStr(output_zip, "data/preinstall_apps/reinstall_apps", "reinstall_apps")
+
   script.ShowProgress(0.1, 0)
   device_specific.FullOTA_InstallEnd()
 
   if OPTIONS.extra_script is not None:
     script.AppendExtra(OPTIONS.extra_script)
-
-  script.Mount("/data")
-  script.UnpackPackageDir("data", "/data")
-  script.SetPermissionsRecursive("/data/preinstall_apps", 1000, 1000, 0755, 0644)
-  common.ZipWriteStr(output_zip, "data/preinstall_apps/reinstall_apps", "reinstall_apps")
 
   script.UnmountAll()
   script.AddToZip(input_zip, output_zip)
