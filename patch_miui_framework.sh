@@ -80,11 +80,11 @@ function apply_miui_patch() {
 	rm -rf $dst_code_orig
 }
 
-apply_miui_patch android.policy.jar.out
-apply_miui_patch services.jar.out
-apply_miui_patch framework.jar.out
-apply_miui_patch secondary-framework.jar.out
-apply_miui_patch mediatek-framework.jar.out
+jar_outs=`grep -rn "JAR_OUTS" $new_smali_dir/README | cut -d'=' -f2`
+for out in $jar_outs
+do
+	apply_miui_patch $out
+done
 
 echo
 echo
