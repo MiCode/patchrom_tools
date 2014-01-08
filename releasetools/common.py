@@ -730,6 +730,9 @@ class Difference(object):
     tf = self.tf
     sf = self.sf
 
+    if tf.name.startswith("data/preinstall_apps"):
+      return self.tf, self.sf, self.patch
+
     ext = os.path.splitext(tf.name)[1]
     diff_program = DIFF_PROGRAM_BY_EXT.get(ext, "bsdiff")
 
