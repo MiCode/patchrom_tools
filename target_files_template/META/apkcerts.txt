@@ -431,3 +431,4 @@ name="VoiceRecognizerXunfei.apk" certificate="build/target/product/security/plat
 name="KingSoftCleaner.apk" certificate="PRESIGNED" private_key=""
 name="XunfeiSpeechService3.apk" certificate="build/target/product/security/platform.x509.pem" private_key="build/target/product/security/platform.pk8"
 name="baidushurufa_52.apk" certificate="PRESIGNED" private_key=""
+name="NetworkAssistant2.apk" certificate="build/target/product/security/platform.x509.pem" private_key="build/target/product/security/platform.pk8"
