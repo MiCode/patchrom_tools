@@ -46,7 +46,7 @@ function copy_data_dir {
     fi
     echo "Copy miui preinstall apps"
     mkdir -p $TARGET_FILES_DIR/DATA/
-    cp -rf $ZIP_DIR/data/media/preinstall_apps $TARGET_FILES_DIR/DATA/
+    cp -rf $ZIP_DIR/data/miui $TARGET_FILES_DIR/DATA/
     if [ -f customize_data.sh ];then
         ./customize_data.sh $PRJ_DIR
     fi
