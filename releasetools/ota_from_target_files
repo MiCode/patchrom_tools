@@ -304,18 +304,6 @@ def CopySystemFiles(input_zip, output_zip=None,
   symlinks.sort()
   return (symlinks, retouch_files)
 
-def CopyDataFiles(input_zip, output_zip=None):
-  """Copies files underneath data/ in the input zip to the output zip."""
-
-  for info in input_zip.infolist():
-    if info.filename.startswith("DATA/preinstall_apps"):
-      basefilename = info.filename[5:]
-      info2 = copy.copy(info)
-      info2.filename = "data/" + basefilename
-      if output_zip is not None:
-         data = input_zip.read(info.filename)
-         output_zip.writestr(info2, data)
-
 def SignOutput(temp_zip_name, output_zip_name):
   key_passwords = common.GetKeyPasswords([OPTIONS.package_key])
   pw = key_passwords[OPTIONS.package_key]
@@ -422,8 +410,6 @@ def WriteFullOTAPackage(input_zip, output_zip):
   # else:
   #   script.UndoRetouchBinaries(retouch_files)
 
-  CopyDataFiles(input_zip, output_zip)
-
   boot_img = common.GetBootableImage("boot.img", "boot.img",
                                      OPTIONS.input_tmp, "BOOT")
   # recovery_img = common.GetBootableImage("recovery.img", "recovery.img",
@@ -482,7 +468,9 @@ def LoadSystemFiles(z):
       if info.filename.startswith("SYSTEM/lib/") and IsRegular(info):
         retouch_files.append(("/system/" + basefilename,
                               out[fn].sha1))
-    elif (info.filename.startswith("DATA/media/preinstall_apps") or info.filename.startswith("DATA/preinstall_apps")) and not IsSymlink(info):
+    # MIUI ADDD:
+    # load /data/miui files
+    elif info.filename.startswith("DATA/miui/") and not IsSymlink(info):
       basefilename = info.filename[5:]
       fn = "data/" + basefilename
       data = z.read(info.filename)
@@ -572,7 +560,6 @@ def WriteIncrementalOTAPackage(target_zip, source_zip, output_zip):
   metadata["post-build"] = target_fp
 
   script.Mount("/system")
-  script.Mount("/data")
   script.AssertSomeFingerprint(source_fp, target_fp)
 
   source_boot = common.GetBootableImage(
@@ -607,6 +594,8 @@ def WriteIncrementalOTAPackage(target_zip, source_zip, output_zip):
   so_far = 0
 
   for fn, tf, sf, size, patch_sha in patch_list:
+    # MIUI ADD:
+    # skip to check /data patch
     if fn.startswith("data/"):
       continue
     script.PatchCheck("/"+fn, tf.sha1, sf.sha1)
@@ -737,14 +726,12 @@ def WriteIncrementalOTAPackage(target_zip, source_zip, output_zip):
   if verbatim_targets:
     script.Print("Unpacking new files...")
     script.UnpackPackageDir("system", "/system")
-    script.UnpackPackageDir("data", "/data")
 
   if updating_recovery:
     script.Print("Unpacking new recovery...")
     script.UnpackPackageDir("recovery", "/system")
 
   script.Print("Symlinks and permissions...")
-  script.SetPermissionsRecursive("/data/preinstall_apps", 1000, 1000, 0755, 0644)
 
   # Create all the symlinks that don't already exist, or point to
   # somewhere different than what we want.  Delete each symlink before
