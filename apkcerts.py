@@ -9,6 +9,8 @@ from xml.dom import minidom
 def getName(codePath):
     if codePath.startswith("/system/app"):
         return codePath.replace("/system/app/", "")
+    if codePath.startswith("/system/priv-app"):
+        return codePath.replace("/system/priv-app/", "")
     else :
         return ""
 
