@@ -2,17 +2,25 @@
 import common
 import copy
 
+def FullOTA_Assertions(info):
+  info.script.Mount("/data")
+
+def IncrementalOTA_Assertions(info):
+  info.script.Mount("/data")
+
 def FullOTA_InstallEnd(info):
-  MountAndUnpackData(info.script)
+  UnpackData(info.script)
   CopyDataFiles(info.input_zip, info.output_zip, info.script)
   Relink(info.input_zip, info.output_zip, info.script)
   SetPermissions(info.script)
+  RemoveAbandonedPreinstall(info.script)
 
 
 def IncrementalOTA_InstallEnd(info):
-  MountAndUnpackData(info.script)
+  UnpackData(info.script)
   Relink(info.target_zip, info.output_zip, info.script)
   SetPermissions(info.script)
+  RemoveAbandonedPreinstall(info.script)
 
 
 
@@ -45,14 +53,16 @@ def CopyDataFiles(input_zip, output_zip, script):
   common.ZipWriteStr(output_zip, "data/miui/reinstall_apps", "reinstall_apps")
   script.AppendExtra("set_perm(1000, 1000, 0666, \"/data/miui/reinstall_apps\");")
 
-def MountAndUnpackData(script):
-  script.Mount("/data")
+
+def UnpackData(script):
   script.UnpackPackageDir("data", "/data")
+
 
 def SetPermissions(script):
   print "[MIUI CUST] OTA: SetPermissions"
-  SetPermissionsRecursive(script, "/data/miui/preinstall_apps", 1000, 1000, 0755, 0644)
+  SetPermissionsRecursive(script, "/data/miui/apps", 1000, 1000, 0755, 0644)
   SetPermissionsRecursive(script, "/data/miui/cust", 1000, 1000, 0755, 0644)
+
 
 def SetPermissionsRecursive(script, d, gid, uid, dmod, fmod):
   try:
@@ -60,4 +70,8 @@ def SetPermissionsRecursive(script, d, gid, uid, dmod, fmod):
   except TypeError:
     script.SetPermissionsRecursive(d, gid, uid, dmod, fmod, None, None)
 
+
+def RemoveAbandonedPreinstall(script):
+  script.AppendExtra("delete_recursive(\"/data/miui/preinstall_apps\");")
+  script.AppendExtra("delete_recursive(\"/data/miui/cust/preinstall_apps\");")
 
