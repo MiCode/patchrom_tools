@@ -87,9 +87,11 @@ class EdifyGenerator(object):
 
   def AssertDevice(self, device):
     """Assert that the device identifier is the given string."""
-    cmd = ('assert(getprop("ro.product.device") == "%s" ||\0'
-           'getprop("ro.build.product") == "%s");' % (device, device))
-    self.script.append(self._WordWrap(cmd))
+    cmd = ('getprop("ro.product.device") == "%s" || '
+           'abort("This package is for \\"%s\\" devices; '
+           'this is a \\"" + getprop("ro.product.device") + "\\".");'
+           ) % (device, device)
+    self.script.append(cmd)
 
   def AssertSomeBootloader(self, *bootloaders):
     """Asert that the bootloader version is one of *bootloaders."""
@@ -168,9 +170,9 @@ class EdifyGenerator(object):
     fstab = self.info.get("fstab", None)
     if fstab:
       p = fstab[partition]
-      self.script.append('format("%s", "%s", "%s", "%s");' %
+      self.script.append('format("%s", "%s", "%s", "%s", "%s");' %
                          (p.fs_type, common.PARTITION_TYPES[p.fs_type],
-                          p.device, p.length))
+                          p.device, p.length, p.mount_point))
 
   def DeleteFiles(self, file_list):
     """Delete all files in file_list."""
