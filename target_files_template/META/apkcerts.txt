@@ -432,3 +432,4 @@ name="NetworkAssistant2.apk" certificate="build/target/product/security/platform
 name="ota-miui-MiShop.apk" certificate="PRESIGNED" private_key=""
 name="ota-partner-NetworkAssistant.apk" certificate="PRESIGNED" private_key=""
 name="ota-partner-XunfeiSpeechService3.apk" certificate="PRESIGNED" private_key=""
+name="MiuiForum.apk" certificate="PRESIGNED" private_key=""
