@@ -12,13 +12,13 @@ function deodex_one_file() {
         file=$4
         tofile=${file/odex/$5} 
         echo "processing $tofile"
-        $BAKSMALI -a $apilevel -c $classpath -d framework -I -x $file || exit -2
+        $BAKSMALI -a $apilevel -c $classpath -d framework -x $file || exit -2
     else
         classpath=$1
         file=$2
         tofile=${file/odex/$3}
         echo "processing $tofile"
-        $BAKSMALI -c $classpath -d framework -I -x $file || exit -2
+        $BAKSMALI -c $classpath -d framework -x $file || exit -2
     fi
     $SMALI out -o classes.dex || exit -2
     jar uf $tofile classes.dex
@@ -71,11 +71,12 @@ fi
 ls framework/core.odex > /dev/null
 if [ $? -eq 0 ] 
 then
+    classpath="core.jar:ext.jar:framework.jar:android.policy.jar:services.jar"
     if [ $1 = '-a' ]
     then
-        deodex_one_file -a $apilevel "" framework/core.odex jar
+        deodex_one_file -a $apilevel $classpath framework/core.odex jar
     else
-        deodex_one_file "" framework/core.odex jar
+        deodex_one_file $classpath framework/core.odex jar
     fi
 fi
 

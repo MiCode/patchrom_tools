@@ -14,6 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# As per the Apache license requirements, this file has been modified
+# from its original state.
+#
+# Such modifications are Copyright (C) 2010 Ben Gruver, and are released
+# under the original license
+
 # This script is a wrapper for smali.jar, so you can simply call "smali",
 # instead of java -jar smali.jar. It is heavily based on the "dx" script
 # from the Android SDK
@@ -55,8 +61,8 @@ javaOpts=""
 # If you want DX to have more memory when executing, uncomment the following
 # line and adjust the value accordingly. Use "java -X" for a list of options
 # you can pass here.
-# 
-javaOpts="-Xmx256M"
+#
+javaOpts="-Xmx512M"
 
 # Alternatively, this will extract any parameter "-Jxxx" from the command line
 # and pass them to Java (instead of to dx). This makes it possible for you to
@@ -69,9 +75,9 @@ while expr "x$1" : 'x-J' >/dev/null; do
 done
 
 if [ "$OSTYPE" = "cygwin" ] ; then
-	jarpath=`cygpath -w  "$libdir/$jarfile"`
+    jarpath=`cygpath -w  "$libdir/$jarfile"`
 else
-	jarpath="$libdir/$jarfile"
+    jarpath="$libdir/$jarfile"
 fi
 
 exec java $javaOpts -jar "$jarpath" "$@"
