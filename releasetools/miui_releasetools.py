@@ -60,7 +60,7 @@ def UnpackData(script):
 
 def SetPermissions(script):
   print "[MIUI CUST] OTA: SetPermissions"
-  SetPermissionsRecursive(script, "/data/miui/apps", 1000, 1000, 0755, 0644)
+  SetPermissionsRecursive(script, "/data/miui", 1000, 1000, 0755, 0644)
   SetPermissionsRecursive(script, "/data/miui/cust", 1000, 1000, 0755, 0644)
 
 
