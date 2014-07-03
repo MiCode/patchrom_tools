@@ -620,6 +620,9 @@ def ZipWriteStr(zip, filename, data, perms=0644):
 
 class DeviceSpecificParams(object):
   module = None
+  # MIUI ADD:
+  miui_module = None
+
   def __init__(self, **kwargs):
     """Keyword arguments to the constructor become attributes of this
     object, which is passed to all functions in the device-specific
@@ -627,6 +630,8 @@ class DeviceSpecificParams(object):
     for k, v in kwargs.iteritems():
       setattr(self, k, v)
     self.extras = OPTIONS.extras
+    # MIUI ADD:
+    self._init_miui_module()
 
     if self.module is None:
       path = OPTIONS.device_specific
@@ -644,15 +649,39 @@ class DeviceSpecificParams(object):
       except ImportError:
         print "unable to load device-specific module; assuming none"
 
+  # MIUI ADD:
+  def _init_miui_module(self):
+    if self.miui_module is None:
+      miui_path = os.path.join(os.environ['PORT_ROOT'], "tools/releasetools")
+      if not miui_path: return
+      try:
+        if os.path.isdir(miui_path):
+          info = imp.find_module("miui_releasetools", [miui_path])
+        self.miui_module = imp.load_module("miui_specific", *info)
+      except ImportError:
+        print "unable to load miui-specific module; assuming none"
+
   def _DoCall(self, function_name, *args, **kwargs):
     """Call the named function in the device-specific module, passing
     the given args and kwargs.  The first argument to the call will be
     the DeviceSpecific object itself.  If there is no module, or the
     module does not define the function, return the value of the
     'default' kwarg (which itself defaults to None)."""
-    if self.module is None or not hasattr(self.module, function_name):
-      return kwargs.get("default", None)
-    return getattr(self.module, function_name)(*((self,) + args), **kwargs)
+    # MIUI MOD:START
+    # if self.module is None or not hasattr(self.module, function_name):
+    #   return kwargs.get("default", None)
+    # return getattr(self.module, function_name)(*((self,) + args), **kwargs)
+    run_default = True
+    if self.module is not None and hasattr(self.module, function_name):
+      run_default = False
+      ret = getattr(self.module, function_name)(*((self,) + args), **kwargs)
+    if self.miui_module is not None and hasattr(self.miui_module, function_name):
+      getattr(self.miui_module, function_name)(*((self,) + args), **kwargs)
+    if run_default:
+       return kwargs.get("default", None)
+    else:
+      return ret
+    #END
 
   def FullOTA_Assertions(self):
     """Called after emitting the block of assertions at the top of a
