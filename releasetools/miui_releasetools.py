@@ -33,10 +33,10 @@ for backward compatibility that update with ota"""
   data = input_zip.read("OTA/bin/relink")
   common.ZipWriteStr(output_zip, "META-INF/com/miui/relink", data)
   # add to script
-  script.AppendExtra("package_extract_file(\"META-INF/com/miui/relink\", \"/data/local/tmp/relink\");")
-  script.AppendExtra("set_perm(0, 0, 0555, \"/data/local/tmp/relink\");")
-  script.AppendExtra("run_program(\"/data/local/tmp/relink\");")
-  script.AppendExtra("delete(\"/data/local/tmp/relink\");")
+  script.AppendExtra("package_extract_file(\"META-INF/com/miui/relink\", \"/tmp/relink\");")
+  script.AppendExtra("set_perm(0, 0, 0555, \"/tmp/relink\");")
+  script.AppendExtra("run_program(\"/tmp/relink\");")
+  script.AppendExtra("delete(\"/tmp/relink\");")
 
 
 def CopyDataFiles(input_zip, output_zip, script):
