@@ -2,25 +2,17 @@
 import common
 import copy
 
-def FullOTA_Assertions(info):
-  info.script.Mount("/data")
-
-def IncrementalOTA_Assertions(info):
-  info.script.Mount("/data")
-
 def FullOTA_InstallEnd(info):
-  UnpackData(info.script)
+  MountAndUnpackData(info.script)
   CopyDataFiles(info.input_zip, info.output_zip, info.script)
   Relink(info.input_zip, info.output_zip, info.script)
   SetPermissions(info.script)
-  RemoveAbandonedPreinstall(info.script)
 
 
 def IncrementalOTA_InstallEnd(info):
-  UnpackData(info.script)
+  MountAndUnpackData(info.script)
   Relink(info.target_zip, info.output_zip, info.script)
   SetPermissions(info.script)
-  RemoveAbandonedPreinstall(info.script)
 
 
 
@@ -33,10 +25,10 @@ for backward compatibility that update with ota"""
   data = input_zip.read("OTA/bin/relink")
   common.ZipWriteStr(output_zip, "META-INF/com/miui/relink", data)
   # add to script
-  script.AppendExtra("package_extract_file(\"META-INF/com/miui/relink\", \"/tmp/relink\");")
-  script.AppendExtra("set_perm(0, 0, 0555, \"/tmp/relink\");")
-  script.AppendExtra("run_program(\"/tmp/relink\");")
-  script.AppendExtra("delete(\"/tmp/relink\");")
+  script.AppendExtra("package_extract_file(\"META-INF/com/miui/relink\", \"/data/local/tmp/relink\");")
+  script.AppendExtra("set_perm(0, 0, 0555, \"/data/local/tmp/relink\");")
+  script.AppendExtra("run_program(\"/data/local/tmp/relink\");")
+  script.AppendExtra("delete(\"/data/local/tmp/relink\");")
 
 
 def CopyDataFiles(input_zip, output_zip, script):
@@ -53,16 +45,14 @@ def CopyDataFiles(input_zip, output_zip, script):
   common.ZipWriteStr(output_zip, "data/miui/reinstall_apps", "reinstall_apps")
   script.AppendExtra("set_perm(1000, 1000, 0666, \"/data/miui/reinstall_apps\");")
 
-
-def UnpackData(script):
+def MountAndUnpackData(script):
+  script.Mount("/data")
   script.UnpackPackageDir("data", "/data")
-
 
 def SetPermissions(script):
   print "[MIUI CUST] OTA: SetPermissions"
-  SetPermissionsRecursive(script, "/data/miui", 1000, 1000, 0755, 0644)
+  SetPermissionsRecursive(script, "/data/miui/preinstall_apps", 1000, 1000, 0755, 0644)
   SetPermissionsRecursive(script, "/data/miui/cust", 1000, 1000, 0755, 0644)
-
 
 def SetPermissionsRecursive(script, d, gid, uid, dmod, fmod):
   try:
@@ -70,8 +60,4 @@ def SetPermissionsRecursive(script, d, gid, uid, dmod, fmod):
   except TypeError:
     script.SetPermissionsRecursive(d, gid, uid, dmod, fmod, None, None)
 
-
-def RemoveAbandonedPreinstall(script):
-  script.AppendExtra("delete_recursive(\"/data/miui/preinstall_apps\");")
-  script.AppendExtra("delete_recursive(\"/data/miui/cust/preinstall_apps\");")
 
