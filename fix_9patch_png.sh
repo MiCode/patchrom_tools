@@ -53,10 +53,6 @@ for file in `find $TMP_ORIGINAL_DIR -name *.9.png`; do
 	fi
 	cp $file $targetfile
 done
-for file in `find $1 -name *.9.png`; do
- targetfile=$3/`echo $file | sed -e "s/$1/$1-target/"`
- cp $file $targetfile
-done
 cd $TMP_TARGET_DIR
 #only store all files, not compress files
 #as raw resource can't be compressed.
