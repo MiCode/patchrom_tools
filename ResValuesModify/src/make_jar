@@ -1,0 +1,8 @@
+#!/bin/bash
+javac ResValuesModify.java
+jar -cvmf manifest.txt ResValuesModify.jar *.class
+find -name "*.class" | xargs rm
+mkdir -p ../jar
+cp ResValuesModify.jar ../jar/ResValuesModify.jar
+rm ResValuesModify.jar
+

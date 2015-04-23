@@ -1,0 +1,86 @@
+#!/bin/bash
+#
+# Copyright (C) 2016, Miui Patchrom
+#
+
+ACTION=$1
+LINE_TERMINATION=$'\r\n'
+OLD_IFS=$IFS
+IFS=$'\n'
+BUSYBOX="$2"
+if [ -n "$(adb shell id | grep "uid=0")" ];then
+    root='true'
+elif [ -z "$(adb shell su -c "id" | grep "uid=0")" ];then
+    echo "Please root your device, and try again."
+    exit 1
+fi
+
+if [ -n $root ];then
+    fileSystemInfo=$(adb shell ls -aRZ /system)
+else
+    fileSystemInfo=$(adb shell su -c "ls -aRZ /system")
+fi
+
+if [ "$ACTION" = '--info' ];then
+    for line in $fileSystemInfo
+    do
+        if [ $line == $LINE_TERMINATION -o ${line:0:1} == 'd' ];then
+            continue
+        fi
+        # lrwxrwxrwx root root u:object_r:system_file:s0 chmod -> toybox
+        # cut line before the string " ->"
+        line=${line%% ->*}
+        if [ $(echo $line | cut -d ':' -f2) == $LINE_TERMINATION ];then
+            dir=$(echo $line | cut -d ':' -f1)
+            path=$dir
+            if [ -n $root ];then
+                line=$(adb shell ls -dZ $path)
+            else
+                line=$(adb shell su -c "ls -dZ $path")
+            fi
+        else
+            path=$dir/$(echo ${line##*:s0} | tr -d $LINE_TERMINATION | sed 's/^[ ]*//')
+        fi
+        selabel="u:${line##*u:}"
+        selabel=${selabel%% *}
+        if [ -n $root ];then
+            uid=$(adb shell $BUSYBOX stat -c %u $path | tr -d $LINE_TERMINATION)
+            gid=$(adb shell $BUSYBOX stat -c %g $path | tr -d $LINE_TERMINATION)
+            perm=$(adb shell $BUSYBOX stat -c %a $path | tr -d $LINE_TERMINATION)
+        else
+            uid=$(adb shell su -c "$BUSYBOX stat -c %u $path" | tr -d $LINE_TERMINATION)
+            gid=$(adb shell su -c "$BUSYBOX stat -c %g $path" | tr -d $LINE_TERMINATION)
+            perm=$(adb shell su -c "$BUSYBOX stat -c %a $path" | tr -d $LINE_TERMINATION)
+        fi
+        #Remove blank in filename, it cause ota_from_target_files failed.
+        path=$(echo $path | sed 's/ //g')
+        echo "${path#\/} $uid $gid $perm selabel=$selabel capabilities=0x0"
+    done
+elif [ "$ACTION" = '--link' ];then
+    for line in $fileSystemInfo
+    do
+        if [ $line == $LINE_TERMINATION];then
+            continue
+        fi
+        line=${line%% ->*}
+        if [ $(echo $line | cut -d ':' -f2) == $LINE_TERMINATION ];then
+            dir=$(echo $line | cut -d ':' -f1)
+            path=$dir
+            if [ -n $root ];then
+                line=$(adb shell ls -dZ $path)
+            else
+                line=$(adb shell su -c "ls -dZ $path")
+            fi
+        fi
+        
+        if [ ${line:0:1} == 'l' ];then
+            path=$dir/$(echo ${line##*:s0} | tr -d $LINE_TERMINATION | sed 's/^[ ]*//')
+            if [ -n $root ];then
+                link=$(adb shell $BUSYBOX readlink $path | tr -d $LINE_TERMINATION)
+            else
+                link=$(adb shell su -c "$BUSYBOX readlink $path" | tr -d $LINE_TERMINATION)
+            fi
+            echo "${path#\/}|$link"
+        fi
+    done
+fi

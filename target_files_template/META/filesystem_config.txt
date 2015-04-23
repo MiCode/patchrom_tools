@@ -1,0 +1,4 @@
+system/bin/app_process32_vendor 0 2000 755 selabel=u:object_r:zygote_exec:s0 capabilities=0x0
+system/bin/app_process64_vendor 0 2000 755 selabel=u:object_r:zygote_exec:s0 capabilities=0x0
+system/xbin/shelld 0 2000 755 selabel=u:object_r:system_file:s0 capabilities=0x0
+system/bin/fdpp 0 2000 755 selabel=u:object_r:system_file:s0 capabilities=0x0

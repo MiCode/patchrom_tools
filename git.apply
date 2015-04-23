@@ -1,0 +1,47 @@
+#!/bin/bash
+
+# this is a git apply command wrapper
+
+RM_LINE=$PORT_ROOT/tools/rmline.sh
+
+bin_files=`grep "^ .*| *Bin[ 0-9]\+->[ 0-9]\+" $1 | sed -e "s/|.*$//" -e "s/ //g"`
+patch_files=`grep "^ .*\.smali.*|" $1 | sed -e "s/|.*$//" -e "s/ //g"`
+files=
+
+for f in $patch_files; do
+    if [ -f "$f" ]; then
+        files="$files $f"
+    else
+        dirfile=`find . -path "${f/.../*}"`
+        #echo find file [$f]: $dirfile
+        files="$files $dirfile"
+    fi
+done
+
+for f in $files; do
+    $RM_LINE $f
+done
+
+git apply --reject $1
+
+for f in $files; do
+    $RM_LINE -r $f
+    ls $f.rej >/dev/null 2>&1 || rm -f $f.orig
+done
+
+echo
+echo +++++++++++
+echo + Summary +
+echo +++++++++++
+rej_files=`find . -name "*.rej"`
+if [ -n "$rej_files" ]; then
+    echo + Following patches are rejected and merge is required.
+    echo $rej_files
+fi
+if [ -n "$bin_files" ]; then
+    echo + Binary files need to be copied manully.
+    echo $bin_files
+fi
+if [ -z "$ref_files$bin_files" ]; then
+    echo + Apply patch successfully!
+fi

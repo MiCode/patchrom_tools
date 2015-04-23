@@ -1,0 +1,11 @@
+#!/bin/bash
+
+if [ "${1%.smali}" == "$1" ];then
+    #echo "not smali file"
+    [ $# -eq 7 ] && diff "$2" "$5" -B -u -La/$1 -Lb/$1
+    exit 0
+else
+    #echo "smali files"
+    [ $# -eq 7 ] && $PORT_ROOT/tools/diffsmali.sh "$2" "$5" -B -u -La/$1 -Lb/$1
+    exit 0
+fi
