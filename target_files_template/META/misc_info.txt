@@ -1,0 +1,7 @@
+recovery_api_version=3
+blocksize=131072
+boot_size=0x00280000
+recovery_size=0x00500000
+system_size=0x08400000   
+userdata_size=0x0c440000
+tool_extensions=.

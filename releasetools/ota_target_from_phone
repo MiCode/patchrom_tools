@@ -1,0 +1,303 @@
+#!/bin/bash 
+
+PWD=`pwd`
+TOOL_DIR=$PORT_ROOT/tools
+OTA_FROM_TARGET_FILES=$TOOL_DIR/releasetools/ota_from_target_files
+TARGET_FILES_TEMPLATE_DIR=$TOOL_DIR/target_files_template
+
+TMP_DIR=$PWD/out
+TARGET_FILES_DIR=$TMP_DIR/target_files
+RECOVERY_ETC_DIR=$TARGET_FILES_DIR/RECOVERY/RAMDISK/etc
+SYSTEM_DIR=$TARGET_FILES_DIR/SYSTEM
+META_DIR=$TARGET_FILES_DIR/META
+TARGET_FILES_ZIP=$TMP_DIR/target_files.zip
+
+OUTPUT_OTA_PACKAGE=$PWD/stockrom.zip
+OUTPUT_METADATA_DIR=$PWD/metadata
+
+FULL_OTA_PACKAGE=$2
+MODE=$1
+
+# prompt user
+function prompt_user {
+    echo "ota_target_from_phone -n|-r [ota-package]"
+    echo "  -n: run this script in normal mode"
+    echo "  -r: run this script in recovery mode, if you can run adb in recovery mode, use this option"
+    echo "  ota-package: the stock full OTA package which already installed into your phone."
+    echo "               If you can't find a OTA package, this can be empty and we will generate"
+    echo "               a OTA package for you to use for our make process"
+    echo
+    echo "Before running this script, please ensure: "
+    echo "(1) The phone is connected to PC and turn on USB Debug"
+    echo "(2) The phone has a rooted kernel or have root privilege"
+    echo
+    echo "This script will generate two zip files under $OUTPUT_DIR: "
+    echo "(1) target_files.zip: this is used to generate incremental OTA package"
+    echo "(2) update.zip: OTA package you can use if you don't have one. This package is ok to install in recovery"
+    echo
+}
+
+# copy the whole target_files_template dir
+function copy_target_files_template {
+    echo "Copy target file template into current working directory"
+    rm -rf $TARGET_FILES_DIR
+    rm -f $TARGET_FILES_ZIP
+    mkdir -p $TARGET_FILES_DIR
+    cp -r $TARGET_FILES_TEMPLATE_DIR/* $TARGET_FILES_DIR
+}
+
+# wait for the device to be online or timeout
+function wait_for_device_online {
+    echo "Wait for the device to be online..."
+
+    local timeout=120
+    while [ $timeout -gt 0 ]
+    do
+        if adb shell ls > /dev/null
+        then
+            break
+        fi
+        sleep 30
+        timeout=$[$timeout - 30]
+    done
+    if [ $timeout -eq 0 ];then
+        echo "Please ensure adb can find your device and then rerun this script."
+        exit 1
+    fi
+}
+
+function ask_for_boot_image {
+    echo "Warning: the ota package will not contain bootimage!!!"
+    echo "Maybe you forget to pass the ota-package parameter."
+    answer="no"
+    while [ 1 ]
+    do
+        echo -n "Are you sure this is really what you want(yes/no):"
+        read answer
+        if [ "$answer" == "no" ];then
+            exit 0
+        elif [ "$answer" == "yes" ];then
+            return
+        fi
+    done
+}
+
+# In normal mode, extract the boot image from full ota package
+function extract_bootimage {
+    if [ -z $FULL_OTA_PACKAGE ];then
+        ask_for_boot_image
+        return
+    fi
+
+    echo "Extract bootimage from full ota package"
+    local tempdir=`mktemp -d dir.XXXXXX`
+    unzip -q $FULL_OTA_PACKAGE -d $tempdir
+    for file in boot.img zImage */boot.img */zImage
+    do
+        if [ -f $tempdir/$file ];then
+            cp $tempdir/$file $TARGET_FILES_DIR/BOOTABLE_IMAGES/boot.img
+            rm -rf $tempdir
+            return
+        fi
+    done
+    ask_for_boot_image
+}
+
+# In recovery mode, dump the boot image from device
+function dump_bootimage {
+    echo "Dump bootimage from device"
+    if [ -f dumpimage.sh ];then
+        ./dumpimage.sh $TARGET_FILES_DIR/BOOTABLE_IMAGES
+    else
+        local info=`adb shell cat /etc/recovery.fstab | grep boot | sed -e "s/\s\+/:/g"`
+        local fstype=`echo $info | cut -d":" -f2`
+
+        if [ "$fstype" == "mtd" ]; then
+            mtdn=`adb shell cat /proc/mtd | grep boot | cut -f1 -d":"`
+            device=/dev/$fstype/$mtdn
+        else
+            device=`echo $info | cut -d":" -f3`
+        fi
+        adb pull $device $TARGET_FILES_DIR/BOOTABLE_IMAGES/boot.img
+    fi
+}
+
+# In recovery mode, extract the recovery.fstab from device
+function extract_recovery_fstab {
+    echo "Extract recovery.fstab from device"
+    adb shell cat /etc/recovery.fstab | awk '{print $1 "\t" $2 "\t" $3}'> $RECOVERY_ETC_DIR/recovery.fstab
+}
+
+# In normal mode, build the recovery.fstab from device
+function build_recovery_fstab {
+    if [ -f recovery.fstab ];then
+        cp recovery.fstab $RECOVERY_ETC_DIR/recovery.fstab
+        return
+    elif [ -n "$FULL_OTA_PACKAGE" ];then
+		echo $FULL_OTA_PACKAGE
+        echo "You should provide a recovery.fstab file in your working directory."
+        exit 1
+    fi
+
+    echo "Build recovery.fstab from device"
+    IFS_OLD=$IFS
+    IFS=$'\n'
+    cat /dev/null > $RECOVERY_ETC_DIR/recovery.fstab
+    for line in `adb shell cat /proc/mounts | grep -E "/system|/data|/cache" | cut -d " " -f1-3`
+    do
+        mount_fstype=`echo $line | cut -d " " -f2,3`
+        device=`echo $line | cut -d " " -f1`
+        echo $mount_fstype $device >> $RECOVERY_ETC_DIR/recovery.fstab
+    done
+    IFS=$IFS_OLD
+}
+
+# build apkcerts.txt
+function build_apkcerts {
+    echo "Build apkcerts.txt"
+    adb pull /data/system/packages.xml $TARGET_FILES_DIR
+    python $TOOL_DIR/apkcerts.py $TARGET_FILES_DIR/packages.xml $META_DIR/apkcerts.txt
+    for file in `ls $SYSTEM_DIR/framework/*.apk`
+    do
+        apk=`basename $file`
+        echo "name=\"$apk\" certificate=\"build/target/product/security/platform.x509.pem\" private_key=\"build/target/product/security/platform.pk8\"" >> $META_DIR/apkcerts.txt
+    done
+    cat $META_DIR/apkcerts.txt | sort > $META_DIR/temp.txt
+    mv $META_DIR/temp.txt $META_DIR/apkcerts.txt
+    rm $TARGET_FILES_DIR/packages.xml
+}
+
+# build filesystem_config.txt from device
+function build_filesystem_config {
+    echo "Run getfilesysteminfo to build filesystem_config.txt"
+
+    adb push $TOOL_DIR/releasetools/getfilesysteminfo /system/xbin
+    adb shell chmod 0777 /system/xbin/getfilesysteminfo
+    adb shell /system/xbin/getfilesysteminfo --info /system >> $META_DIR/filesystem_config.txt
+    fs_config=`cat $META_DIR/filesystem_config.txt | col -b | sed -e '/getfilesysteminfo/d'`
+    OLD_IFS=$IFS
+    IFS=$'\n'
+    for line in $fs_config
+    do
+        echo $line | grep -q -e "\<su\>" && continue
+        echo $line | grep -q -e "\<invoke-as\>" && continue
+        echo $line >> $META_DIR/tmp.txt
+    done
+    IFS=$OLD_IFS
+    cat $META_DIR/tmp.txt | sort > $META_DIR/filesystem_config.txt
+    rm $META_DIR/tmp.txt
+}
+
+# recover the device files' symlink information
+function recover_symlink {
+    echo "Run getfilesysteminfo and recoverylink.py to recover symlink"
+    adb shell /system/xbin/getfilesysteminfo --link /system | sed -e '/\<su\>/d;/\<invoke-as\>/d' | sort > $SYSTEM_DIR/linkinfo.txt
+    python $TOOL_DIR/releasetools/recoverylink.py $TARGET_FILES_DIR
+    adb shell rm /system/xbin/getfilesysteminfo
+}
+
+function remount_system_device {
+    echo "Remount /system to be writable"
+
+    if adb root | grep "cannot run" > /dev/null;then
+        device=`adb shell cat /proc/mounts | grep "/system" | cut -d " " -f 1`
+        echo "You don't have a rooted kernel. Please run the following command mannually"
+        echo "(1) adb shell"
+        echo "(2) su"
+        echo "(3) mount -o remount,rw $device /system"
+        echo "(3) chmod 0777 /system /system/*"
+        echo
+
+        answer="no"
+        while [ $answer != "yes" ]
+        do
+            echo -n "If you finish running the above commands on your phone(yes/no):"
+            read answer
+        done
+        if adb shell ls /system/xbin/getfilesysteminfo;then
+            return
+        else
+            if adb push $TOOL_DIR/releasetools/getfilesysteminfo /system/xbin;then
+                return
+            else
+                echo "Please double check your answer and if your phone has root privilege"
+                exit 1
+            fi
+        fi
+    else
+        sleep 1
+        adb remount
+    fi
+    sleep 1
+}
+
+# build the SYSTEM dir under target_files
+function build_SYSTEM {
+    echo "Extract the whole /system from device"
+    adb pull /system $SYSTEM_DIR
+    find $SYSTEM_DIR -name su | xargs rm -f
+    find $SYSTEM_DIR -name invoke-as | xargs rm -f
+    remount_system_device
+    build_filesystem_config
+    recover_symlink
+}
+
+# compress the target_files dir into a zip file
+function zip_target_files {
+    echo "Compress the target_files dir into zip file"
+    cd $TARGET_FILES_DIR
+    zip -q -r -y $TARGET_FILES_ZIP *
+    cd -
+}
+
+# build a new full ota package
+function build_ota_package {
+    echo "Build full ota package: $OUTPUT_OTA_PACKAGE"
+    $OTA_FROM_TARGET_FILES -n -k $PORT_ROOT/build/security/testkey $TARGET_FILES_ZIP $OUTPUT_OTA_PACKAGE
+}
+
+function gen_metadata {
+    echo "Generate metadata used to build target files..."
+    local out=$OUTPUT_METADATA_DIR
+    rm -rf $out
+    mkdir -p $out
+
+    cp -f $META_DIR/apkcerts.txt $out
+    cp -f $META_DIR/filesystem_config.txt $out
+    mv -f $SYSTEM_DIR/linkinfo.txt $out
+    cp -f $RECOVERY_ETC_DIR/recovery.fstab $out
+}
+
+if [ $# -eq 0 ] || [ $# -gt 2 ];then
+    prompt_user
+    exit 1
+fi
+
+if [ "$MODE" != "-r" ] && [ "$MODE" != "-n" ];then
+    prompt_user
+    exit 1
+fi
+
+wait_for_device_online
+copy_target_files_template
+
+if [ "$MODE" == "-r" ];then
+    dump_bootimage
+    extract_recovery_fstab
+    adb shell mount /system
+    adb shell mount /data
+    sleep 1
+else
+    extract_bootimage
+    build_recovery_fstab
+fi
+
+build_SYSTEM
+build_apkcerts
+gen_metadata
+zip_target_files
+build_ota_package
+
+if [ "$MODE" == "-r" ];then
+    adb shell umount /system
+fi
