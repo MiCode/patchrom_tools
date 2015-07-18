@@ -11,6 +11,11 @@ SIGN_TARGET_FILES_APKS=$TOOL_DIR/releasetools/sign_target_files_apks
 OUT_ZIP_FILE=
 NO_SIGN=false
 
+APKCERT=$PORT_ROOT/miui/metadata/apkcert.txt
+if [ "$USE_ANDROID_OUT" == "true" ];then
+    APKCERT=$ANDROID_OUT/obj/PACKAGING/apkcerts_intermediates/*.txt
+fi
+
 # copy the whole target_files_template dir
 function copy_target_files_template {
     echo "Copy target file template into current working directory"
@@ -63,6 +68,7 @@ function process_metadata {
     cp -f $METADATA_DIR/filesystem_config.txt $TARGET_FILES_DIR/META
     cat $TOOL_DIR/target_files_template/META/filesystem_config.txt >> $TARGET_FILES_DIR/META/filesystem_config.txt
     cp -f $METADATA_DIR/recovery.fstab $TARGET_FILES_DIR/RECOVERY/RAMDISK/etc
+    cp -rf $APKCERT $TARGET_FILES_DIR/META/apkcerts.txt
     python $TOOL_DIR/uniq_first.py $METADATA_DIR/apkcerts.txt $TARGET_FILES_DIR/META/apkcerts.txt $PRJ_DIR
     cat $TARGET_FILES_DIR/META/apkcerts.txt | sort > $TARGET_FILES_DIR/temp.txt
     mv $TARGET_FILES_DIR/temp.txt $TARGET_FILES_DIR/META/apkcerts.txt
