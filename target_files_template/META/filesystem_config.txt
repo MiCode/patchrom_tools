@@ -2,8 +2,9 @@ system/xbin/invoke-as 0 0 6755
 system/xbin/su 0 0 6755
 system/xbin/busybox 0 0 6755
 system/xbin/insecure 0 2000 6755
-system/xbin/shelld 0 1000 6750
+system/xbin/shelld 0 1000 754
 system/xbin/oemfix 0 2000 6755
 system/lib/liblbesec.so 0 0 744
 system/bin/dexopt_vendor 0 2000 755
 system/bin/app_process_vendor 0 2000 755
+system/bin/tunman 0 2000 755
