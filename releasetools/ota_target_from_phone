@@ -43,7 +43,7 @@ function copy_target_files_template {
     rm -rf $TARGET_FILES_DIR
     rm -f $TARGET_FILES_ZIP
     mkdir -p $TARGET_FILES_DIR
-    cp -r $TARGET_FILES_TEMPLATE_DIR/* $TARGET_FILES_DIR
+    cp -r ../$TARGET_FILES_TEMPLATE_DIR/* $TARGET_FILES_DIR
 }
 
 # wait for the device to be online or timeout
