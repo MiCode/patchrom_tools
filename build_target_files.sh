@@ -10,6 +10,7 @@ OTA_FROM_TARGET_FILES=$TOOL_DIR/releasetools/ota_from_target_files
 SIGN_TARGET_FILES_APKS=$TOOL_DIR/releasetools/sign_target_files_apks
 OUT_ZIP_FILE=
 NO_SIGN=false
+CERTIFICATE_DIR=$PORT_ROOT/build/security
 
 APKCERT=$PORT_ROOT/miui/metadata/apkcert.txt
 if [ "$USE_ANDROID_OUT" == "true" ];then
@@ -87,26 +88,33 @@ function zip_target_files {
 
 function sign_target_files {
     echo "Sign target files"
-    $SIGN_TARGET_FILES_APKS -d $PORT_ROOT/build/security $TARGET_FILES_ZIP temp.zip
+    $SIGN_TARGET_FILES_APKS -d $CERTIFICATE_DIR $TARGET_FILES_ZIP temp.zip
     mv temp.zip $TARGET_FILES_ZIP
 }
 
 # build a new full ota package
 function build_ota_package {
     echo "Build full ota package: $OUT_DIR/$OUT_ZIP_FILE"
-    $OTA_FROM_TARGET_FILES -n -k $PORT_ROOT/build/security/testkey $TARGET_FILES_ZIP $OUT_DIR/$OUT_ZIP_FILE
+    $OTA_FROM_TARGET_FILES -n -k $CERTIFICATE_DIR/testkey $TARGET_FILES_ZIP $OUT_DIR/$OUT_ZIP_FILE
 }
 
-
 if [ $# -eq 3 ];then
-    NO_SIGN=true
     OUT_ZIP_FILE=$3
+    if [ "$2" == "-n" ];then
+        NO_SIGN=true
+    elif [ -n "$2" ];then
+        CERTIFICATE_DIR=$2
+    fi
     INCLUDE_THIRDPART_APP=$1
 elif [ $# -eq 2 ];then
     OUT_ZIP_FILE=$2
     INCLUDE_THIRDPART_APP=$1
 elif [ $# -eq 1 ];then
     INCLUDE_THIRDPART_APP=$1
+fi
+
+if [ -f "$CERTIFICATE_DIR/passwd" ];then
+    export ANDROID_PW_FILE=$CERTIFICATE_DIR/passwd
 fi
 
 copy_target_files_template
