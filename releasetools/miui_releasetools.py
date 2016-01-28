@@ -11,6 +11,7 @@ def IncrementalOTA_Assertions(info):
 def FullOTA_InstallEnd(info):
   UnpackData(info.script)
   CopyDataFiles(info.input_zip, info.output_zip, info.script)
+  Replace_Cert(info.input_zip, info.output_zip, info.script)
   Relink(info.input_zip, info.output_zip, info.script)
   SetPermissions(info.script)
   RemoveAbandonedPreinstall(info.script)
@@ -18,6 +19,7 @@ def FullOTA_InstallEnd(info):
 
 def IncrementalOTA_InstallEnd(info):
   UnpackData(info.script)
+  Replace_Cert(info.target_zip, info.output_zip, info.script)
   Relink(info.target_zip, info.output_zip, info.script)
   SetPermissions(info.script)
   RemoveAbandonedPreinstall(info.script)
@@ -76,4 +78,20 @@ def SetPermissionsRecursive(script, d, gid, uid, dmod, fmod):
 def RemoveAbandonedPreinstall(script):
   script.AppendExtra("delete_recursive(\"/data/miui/preinstall_apps\");")
   script.AppendExtra("delete_recursive(\"/data/miui/cust/preinstall_apps\");")
+
+def Replace_Cert(input_zip, output_zip, script):
+  try:
+    data = input_zip.read("OTA/bin/busybox")
+    common.ZipWriteStr(output_zip, "META-INF/com/miui/busybox", data)
+    data = input_zip.read("OTA/bin/replace_key")
+    common.ZipWriteStr(output_zip, "META-INF/com/miui/replace_key", data)
+    script.AppendExtra("package_extract_file(\"META-INF/com/miui/busybox\", \"/tmp/busybox\");")
+    script.AppendExtra("set_perm(0, 0, 0555, \"/tmp/busybox\");")
+    script.AppendExtra("package_extract_file(\"META-INF/com/miui/replace_key\", \"/tmp/replace_key\");")
+    script.AppendExtra("set_perm(0, 0, 0555, \"/tmp/replace_key\");")
+    script.AppendExtra("run_program(\"/sbin/sh\", \"/tmp/replace_key\");")
+    script.AppendExtra("delete(\"/tmp/busybox\");")
+    script.AppendExtra("delete(\"/tmp/replace_key\");")
+  except KeyError:
+    print 'Ignore replace cert'
 
