@@ -8,3 +8,4 @@ system/xbin/tunman 0 2000 755
 system/lib/liblbesec.so 0 0 744
 system/bin/dexopt_vendor 0 2000 755
 system/bin/app_process_vendor 0 2000 755
+system/bin/fdpp 0 2000 755
