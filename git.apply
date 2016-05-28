@@ -22,7 +22,8 @@ for f in $files; do
     $RM_LINE $f
 done
 
-git apply --reject $1
+# = .=
+git apply --whitespace=nowarn --reject $1
 
 for f in $files; do
     $RM_LINE -r $f
