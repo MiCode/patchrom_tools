@@ -43,7 +43,7 @@ done
 
 echo "NEWCMDLINE: $NEWCMDLINE"
 
-BASEADR=$(cat $TARGET_BOOT_DIR/boot.img-base)
+BASEADDR=$(cat $TARGET_BOOT_DIR/boot.img-base)
 PAGESIZE=$(cat $TARGET_BOOT_DIR/boot.img-pagesize)
 RAMDISKOFFSET=$(cat $TARGET_BOOT_DIR/boot.img-ramdisk_offset)
 TAGSOFFSET=$(cat $TARGET_BOOT_DIR/boot.img-tags_offset)
