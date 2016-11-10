@@ -80,10 +80,10 @@ function apply_miui_patch() {
 	rm -rf $dst_code_orig
 }
 
-jar_outs=`grep -rn "JAR_OUTS" $new_smali_dir/README | cut -d'=' -f2`
+jar_outs=`find $new_smali_dir -name "*.jar.out"`
 for out in $jar_outs
 do
-	apply_miui_patch $out
+    apply_miui_patch $(basename $out)
 done
 
 echo
