@@ -65,7 +65,8 @@ def SetPermissions(script):
   SetPermissionsRecursive(script, "/data/miui", 1000, 1000, 0755, 0644)
   script.AppendExtra("set_metadata(\"/system/bin/debuggerd\", \"uid\", 0, \"gid\", 2000, \"mode\", 0755, \"capabilities\", 0x0, \"selabel\", \"u:object_r:system_file:s0\");")
   script.AppendExtra("set_metadata(\"/system/bin/debuggerd_vendor\", \"uid\", 0, \"gid\", 2000, \"mode\", 0755, \"capabilities\", 0x0, \"selabel\", \"u:object_r:debuggerd_exec:s0\");")
-  script.AppendExtra("set_metadata(\"/system/xbin/su\", \"uid\", 0, \"gid\", 2000, \"mode\", 06755, \"capabilities\", 0x0, \"selabel\", \"u:object_r:su_exec:s0\");")
+  script.AppendExtra("set_metadata(\"/system/xbin/shelld\", \"uid\", 0, \"gid\", 1000, \"mode\", 06754, \"capabilities\", 0x0, \"selabel\", \"u:object_r:system_file:s0\");")
+  script.AppendExtra("set_metadata(\"/system/xbin/su\", \"uid\", 0, \"gid\", 0, \"mode\", 06755, \"capabilities\", 0x0, \"selabel\", \"u:object_r:su_exec:s0\");")
 
 
 def SetPermissionsRecursive(script, d, gid, uid, dmod, fmod):
